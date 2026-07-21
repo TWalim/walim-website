@@ -174,7 +174,8 @@
   .card-price{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .card-name{background:var(--beige-warm);color:var(--ink-on-paper);border-radius:0 0 999px 0;}
   .card-price{background:var(--green);color:var(--beige);font-weight:900;border-radius:0 0 0 999px;}
-  .aed-icon{width:.8em;height:.8em;display:inline-block;vertical-align:-0.05em;margin-inline-start:2px;}
+  .price-value{display:inline-flex;align-items:center;gap:3px;}
+  .aed-icon{width:.8em;height:.8em;flex-shrink:0;}
 
   /* MODAL */
   .modal-overlay{
@@ -434,7 +435,8 @@ const AED_ICON = '<svg viewBox="0 0 441.273858 383.225643" xmlns="http://www.w3.
 // Swap the "د.إ" text in any price string for the official symbol icon
 function formatPrice(priceStr){
   if (!priceStr) return priceStr;
-  return priceStr.replace('د.إ', AED_ICON);
+  const withIcon = priceStr.replace('د.إ', AED_ICON);
+  return `<span class="price-value">${withIcon}</span>`;
 }
 
 const ICONS = {
@@ -567,6 +569,11 @@ const menuWrap = document.getElementById('menuWrap');
 let activeCat = 'tea';
 
 function iconFor(catKey){ return ICONS[CATEGORIES.find(c=>c.key===catKey).icon]; }
+function labelFor(catKey){ return CATEGORIES.find(c=>c.key===catKey).label; }
+// Actual uploaded filenames follow the pattern: "اسم القائمة - اسم المنتج.png"
+function imagePathFor(catKey, itemName){
+  return `images/${encodeURIComponent(labelFor(catKey) + ' - ' + itemName)}.png`;
+}
 
 function renderTabs(){
   tabsInner.innerHTML = CATEGORIES.map(c =>
@@ -596,7 +603,7 @@ function renderGrid(){
         ${items.map((item, i) => `
           <button class="card" data-cat="${activeCat}" data-group="${groupName}" data-index="${i}">
             <div class="card-thumb">
-              <img src="images/${encodeURIComponent(item.name)}.png" alt="${item.name}" loading="lazy"
+              <img src="${imagePathFor(activeCat, item.name)}" alt="${item.name}" loading="lazy"
                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
               <div class="thumb-fallback">${icon}</div>
             </div>
@@ -662,7 +669,7 @@ function openModal(item, catKey){
   modalCard.innerHTML = `
     <button class="modal-close" id="modalCloseInner" aria-label="إغلاق">✕</button>
     <div class="modal-thumb">
-      <img src="images/${encodeURIComponent(item.name)}.png" alt="${item.name}" loading="lazy"
+      <img src="${imagePathFor(catKey, item.name)}" alt="${item.name}" loading="lazy"
            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
       <div class="thumb-fallback">${icon}</div>
     </div>
