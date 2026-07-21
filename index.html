@@ -161,9 +161,11 @@
   .card:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(25,61,32,.14);}
   .card-thumb{
     width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
-    background:var(--beige-deep);color:var(--green-mid);
+    background:var(--beige-deep);color:var(--green-mid);position:relative;overflow:hidden;
   }
   .card-thumb svg{width:44%;height:44%;}
+  .card-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .thumb-fallback{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:var(--beige-deep);}
   .card-body{display:flex;min-height:38px;}
   .card-name, .card-price{
     flex:1;display:flex;align-items:center;justify-content:center;
@@ -172,6 +174,7 @@
   .card-price{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .card-name{background:var(--beige-warm);color:var(--ink-on-paper);border-radius:0 0 999px 0;}
   .card-price{background:var(--green);color:var(--beige);font-weight:900;border-radius:0 0 0 999px;}
+  .aed-icon{width:.8em;height:.8em;display:inline-block;vertical-align:-0.05em;margin-inline-start:2px;}
 
   /* MODAL */
   .modal-overlay{
@@ -193,9 +196,10 @@
   }
   .modal-thumb{
     width:100%;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;
-    background:var(--beige-deep);color:var(--green-mid);
+    background:var(--beige-deep);color:var(--green-mid);position:relative;overflow:hidden;
   }
   .modal-thumb svg{width:34%;height:34%;}
+  .modal-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
   .modal-body{padding:28px 26px 32px;}
   .modal-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:12px;}
   .modal-top h3{font-size:1.5rem;color:var(--ink-on-paper);}
@@ -248,8 +252,13 @@
   .footer-stack{max-width:420px;margin:0 auto;text-align:right;}
   .footer-brand-name{font-size:1.25rem;color:var(--beige);margin-bottom:10px;}
   .footer-links-vertical{margin-bottom:14px;}
-  .footer-links-vertical a{display:block;color:var(--beige);font-size:.86rem;border-bottom:1px solid transparent;padding:4px 0;width:fit-content;margin-inline-end:auto;}
+  .footer-links-vertical a{
+    display:flex; align-items:center; gap:7px;
+    justify-content:flex-end; color:var(--beige); font-size:.86rem;
+    border-bottom:1px solid transparent; padding:4px 0; width:fit-content; margin-inline-end:auto;
+  }
   .footer-links-vertical a:hover{border-color:var(--beige);}
+  .footer-links-vertical a svg{width:15px;height:15px;flex-shrink:0;}
   .footer-section{margin-bottom:14px;}
   .footer-section:last-child{margin-bottom:0;}
   .footer-section h4{font-size:.95rem;margin-bottom:6px;color:var(--beige);font-weight:700;}
@@ -362,8 +371,14 @@
   <div class="footer-stack">
     <h3 class="footer-brand-name">والم للشاي المختص</h3>
     <div class="footer-links-vertical">
-      <a href="https://www.instagram.com/t.walim" target="_blank" rel="noopener">انستغرام</a>
-      <a href="https://wa.me/971509941627" target="_blank" rel="noopener">الواتس آب</a>
+      <a href="https://www.instagram.com/t.walim" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+        انستغرام
+      </a>
+      <a href="https://wa.me/971509941627" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.5 1.3 5L2 22l5.2-1.3c1.5.8 3.1 1.3 4.8 1.3 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3.1.8.8-3-.2-.3C4.1 14.7 3.7 13.4 3.7 12c0-4.6 3.7-8.3 8.3-8.3s8.3 3.7 8.3 8.3-3.7 8.3-8.3 8.3zm4.6-6.2c-.3-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.3-.6.8-.8 1-.1.2-.3.2-.5.1-.3-.1-1.1-.4-2.1-1.3-.8-.7-1.3-1.6-1.4-1.8-.1-.2 0-.4.1-.5.1-.1.3-.3.4-.5.1-.1.2-.3.2-.4.1-.2 0-.3 0-.4-.1-.1-.6-1.4-.8-1.9-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.6.3-.2.3-.8.8-.8 1.9s.8 2.2 1 2.4c.1.2 1.6 2.5 4 3.5.6.2 1 .4 1.3.5.6.2 1.1.2 1.5.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2 0-.1-.2-.2-.5-.3z"/></svg>
+        الواتس آب
+      </a>
     </div>
     <div class="footer-section">
       <h4>ساعات العمل</h4>
@@ -411,6 +426,17 @@ function goTo(pageId){
 }
 
 /* ================= ICON PLACEHOLDERS (swap for real product photos later) ================= */
+
+/* Official UAE Dirham symbol — traced from the reference image supplied,
+   used via currentColor so it always matches surrounding text color. */
+const AED_ICON = '<svg viewBox="0 0 441.273858 383.225643" xmlns="http://www.w3.org/2000/svg" class="aed-icon"><g transform="translate(-99.000000,491.113034) scale(0.100000,-0.100000)" fill="currentColor" stroke="none"><path d="M1408 4878 c77 -129 111 -216 139 -355 15 -75 17 -149 18 -518 l0 -430 -215 0 c-236 0 -241 1 -327 71 l-33 27 0 -60 c0 -184 80 -330 215 -394 58 -28 66 -29 208 -29 l147 0 0 -196 0 -196 -202 4 c-221 4 -246 9 -320 68 -20 17 -40 30 -44 30 -4 0 -4 -39 -2 -87 12 -190 98 -321 246 -375 36 -13 81 -17 190 -18 l143 0 -6 -402 c-6 -469 -10 -550 -32 -638 -20 -86 -81 -216 -123 -263 l-33 -38 859 4 c928 4 941 5 1195 62 262 59 528 172 709 301 115 82 274 240 353 351 108 152 203 356 249 533 l23 90 230 0 c127 0 247 -5 267 -10 20 -6 60 -29 89 -52 l52 -41 -5 104 c-7 138 -33 204 -108 280 -75 75 -129 95 -285 103 -66 3 -132 6 -147 6 l-28 0 0 191 0 191 208 -4 c229 -4 260 -11 331 -77 l33 -32 -4 108 c-3 91 -8 117 -30 165 -35 76 -107 151 -177 185 -53 27 -64 28 -239 33 l-184 5 -44 135 c-219 667 -722 1056 -1524 1178 -88 13 -242 16 -959 19 l-853 4 20 -33z m1467 -168 c255 -13 415 -50 590 -138 233 -116 422 -323 526 -576 43 -103 103 -303 114 -378 l7 -48 -981 0 -981 0 0 575 0 575 273 0 c149 0 353 -5 452 -10z m1275 -1715 l0 -195 -1000 0 -1000 0 0 195 0 195 1000 0 1000 0 0 -195z m-40 -586 c0 -5 -14 -65 -31 -132 -72 -287 -178 -485 -346 -648 -203 -197 -419 -293 -753 -336 -70 -8 -255 -16 -472 -20 l-358 -6 0 577 0 576 980 0 c683 0 980 -3 980 -11z"/></g></svg>';
+
+// Swap the "د.إ" text in any price string for the official symbol icon
+function formatPrice(priceStr){
+  if (!priceStr) return priceStr;
+  return priceStr.replace('د.إ', AED_ICON);
+}
+
 const ICONS = {
   tea: `<svg viewBox="0 0 40 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M7 5 H33 L27.5 43 H12.5 Z"/><path d="M20 38 V17 M20 24 C20 20 16 18 12.5 19 C12.5 23 16 25.5 20 24 M20 20 C20 16 24 14 27.5 15 C27.5 19 24 21.5 20 20"/></svg>`,
   coffee: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 18 H34 V30 C34 36 29 40 21 40 C13 40 8 36 8 30 Z"/><path d="M34 20 H38 C41 20 42 23 42 25 C42 27 41 30 38 30 H34"/><path d="M15 6 C15 9 18 9 18 12 M23 6 C23 9 26 9 26 12"/></svg>`,
@@ -569,10 +595,14 @@ function renderGrid(){
       <div class="card-grid">
         ${items.map((item, i) => `
           <button class="card" data-cat="${activeCat}" data-group="${groupName}" data-index="${i}">
-            <div class="card-thumb">${icon}</div>
+            <div class="card-thumb">
+              <img src="images/${encodeURIComponent(item.name)}.png" alt="${item.name}" loading="lazy"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <div class="thumb-fallback">${icon}</div>
+            </div>
             <div class="card-body">
               <div class="card-name">${item.name}</div>
-              <div class="card-price">${item.price ? item.price : 'خيارات متعددة'}</div>
+              <div class="card-price">${item.price ? formatPrice(item.price) : 'خيارات متعددة'}</div>
             </div>
           </button>
         `).join('')}
@@ -597,7 +627,7 @@ function openModal(item, catKey){
   const icon = iconFor(catKey);
 
   const priceRow = item.price
-    ? `<span class="modal-price">${item.price}</span>`
+    ? `<span class="modal-price">${formatPrice(item.price)}</span>`
     : '';
 
   const descRow = item.desc
@@ -606,7 +636,7 @@ function openModal(item, catKey){
 
   const variantsRow = item.variants
     ? `<div class="variant-list">${item.variants.map(v => `
-        <div class="variant-row"><span>${v.label}</span><span>${v.price}</span></div>
+        <div class="variant-row"><span>${v.label}</span><span>${formatPrice(v.price)}</span></div>
       `).join('')}</div>`
     : '';
 
@@ -615,7 +645,7 @@ function openModal(item, catKey){
         <div class="variant-group">
           <div class="variant-group-label">${g.label}</div>
           <div class="variant-list">${g.variants.map(v => `
-            <div class="variant-row"><span>${v.label}</span><span>${v.price}</span></div>
+            <div class="variant-row"><span>${v.label}</span><span>${formatPrice(v.price)}</span></div>
           `).join('')}</div>
         </div>
       `).join('')
@@ -631,7 +661,11 @@ function openModal(item, catKey){
 
   modalCard.innerHTML = `
     <button class="modal-close" id="modalCloseInner" aria-label="إغلاق">✕</button>
-    <div class="modal-thumb">${icon}</div>
+    <div class="modal-thumb">
+      <img src="images/${encodeURIComponent(item.name)}.png" alt="${item.name}" loading="lazy"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+      <div class="thumb-fallback">${icon}</div>
+    </div>
     <div class="modal-body">
       <div class="modal-top"><h3>${item.name}</h3>${priceRow}</div>
       ${descRow}
