@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&family=Noto+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --beige:#fffcea;
@@ -448,138 +449,98 @@ const ICONS = {
   hot: `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20 H34 V30 C34 36 29 40 22 40 C15 40 10 36 10 30 Z"/><path d="M34 22 H38 C41 22 42 25 42 27 C42 29 41 32 38 32 H34"/><path d="M17 6 C15 9 19 11 17 14 M25 6 C23 9 27 11 25 14"/></svg>`,
 };
 
-/* ================= MENU DATA — placeholder names & prices, ready to replace with the real price list ================= */
-const CATEGORIES = [
-  { key:'tea', label:'الشاي المختص', icon:'tea' },
-  { key:'coffee', label:'القهوة المختصة', icon:'coffee' },
-  { key:'snacks', label:'الوجبات الخفيفة', icon:'bakery' },
-  { key:'cold', label:'المشروبات الباردة', icon:'cold' },
-  { key:'hot', label:'المشروبات الساخنة', icon:'hot' },
-  { key:'desserts', label:'الحلويات', icon:'dessert' },
-  { key:'dallah', label:'الدلال', icon:'dallah' },
-];
+/* ================= LIVE MENU DATA — fetched from Supabase ================= */
+const SUPABASE_URL = 'https://edsgxumomdawmgbuurzz.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_El_NpoOjps4qEj7_1Fs-tQ_uncqHS4y';
+const BUCKET = 'menu-images';
+let sb;
+try { sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch (e) { /* handled at load time below */ }
 
-const ITEMS = {
-  tea: {
-    '': [
-      { name:'شاي والم', desc:'مزيج والم الخاص، وصفة مميزة بروائح متوازنة تمثّل هوية المحل.',
-        variants:[{label:'كوب ورق', price:'5 د.إ'},{label:'استكانة صغيرة', price:'5 د.إ'},{label:'استكانة كبيرة', price:'8 د.إ'}] },
-      { name:'شاي سماور', desc:'شاي يُحضّر على الطريقة التقليدية بالسماور، بقوام دافئ وعبق مميز.',
-        variants:[{label:'كوب ورق', price:'5 د.إ'},{label:'استكانة صغيرة', price:'5 د.إ'},{label:'استكانة كبيرة', price:'8 د.إ'}] },
-      { name:'شاي عدني', desc:'نكهة عدنية أصيلة بلمسة توابل خفيفة تذكّرك بالجنوب.',
-        variants:[{label:'كوب ورق', price:'5 د.إ'},{label:'استكانة صغيرة', price:'5 د.إ'},{label:'استكانة كبيرة', price:'8 د.إ'}] },
-      { name:'شاي عراقي', desc:'شاي ثقيل القوام غامق اللون، يُقدَّم على الطريقة العراقية التقليدية.',
-        variants:[{label:'كوب ورق', price:'5 د.إ'},{label:'استكانة صغيرة', price:'5 د.إ'},{label:'استكانة كبيرة', price:'8 د.إ'}] },
-      { name:'شاي مغربي', desc:'شاي أخضر منعنع بطريقة تحضير مغربية أصيلة.',
-        variants:[{label:'كوب ورق', price:'5 د.إ'},{label:'استكانة صغيرة', price:'5 د.إ'},{label:'استكانة كبيرة', price:'8 د.إ'}] },
-      { name:'شاي حبق', desc:'شاي مُنكَّه بأوراق الحبق الطازجة، برائحة عطرية مميزة.',
-        variants:[{label:'كوب ورق', price:'5 د.إ'},{label:'استكانة صغيرة', price:'5 د.إ'},{label:'استكانة كبيرة', price:'8 د.إ'}] },
-    ],
-  },
-  coffee: {
-    '': [
-      { name:'V60', price:'10 د.إ', desc:'قهوة مقطّرة يدويًا بطريقة V60، تُبرز نكهة الحبة الأصلية بوضوح.' },
-    ],
-  },
-  snacks: {
-    '': [
-      { name:'باخمري', desc:'معجّنة محشوة تُخبز طازجة يوميًا في المحل.',
-        variantGroups:[
-          { label:'سادة', variants:[{label:'5 حبات', price:'10.5 د.إ'},{label:'25 حبة', price:'40 د.إ'}] },
-          { label:'محشوة', variants:[{label:'5 حبات', price:'15.5 د.إ'},{label:'25 حبة', price:'55 د.إ'}] },
-        ],
-        optionsLabel:'الحشوات', options:['صوص والم','صوص نوتيلا','جبن','جبن بطاط عمان'] },
-      { name:'خلية النحل', price:'15 د.إ', desc:'معجّنة حلوة محشوة بالجبن والعسل على شكل خلية نحل.' },
-      { name:'سمبوسة', price:'12.5 د.إ', desc:'سمبوسة مقرمشة تُقلى طازجة، متوفرة بحشوات متعددة.',
-        options:['سمبوسة لحم','سمبوسة دجاج','سمبوسة خضار'], optionsNoWrap:true },
-      { name:'سمبوسة ميني', price:'11 د.إ', desc:'سمبوسة بحجم مصغّر، مثالية للمشاركة.' },
-      { name:'كاتلكس', price:'13 د.إ', desc:'قطع مقرمشة محشوة، تُقدَّم دافئة.' },
-      { name:'بطاط حومر', price:'7 د.إ', desc:'بطاطس مقرمشة تُقدَّم بصلصة حارة مميزة.' },
-      { name:'ترند بطاط عمان', price:'11 د.إ', desc:'بطاطس مقرمشة بنكهة عُمانية تقليدية.' },
-      { name:'فطيرة جبن زعتر', price:'11 د.إ', desc:'فطيرة طازجة محشوة بالجبن والزعتر.' },
-      { name:'خبز التمر', price:'11 د.إ', desc:'خبز طري محشو بعجينة التمر الطبيعية.' },
-      { name:'فطيرة دوار السعادة', price:'20 د.إ', desc:'فطيرة مميزة متوفرة بعدة حشوات جبنية.',
-        options:['جبن','جبن بيض','جبن بطاط عمان'] },
-      { name:'جباب', desc:'خبز رقيق طري يُقدَّم دافئًا على الطريقة اليمنية.',
-        variants:[{label:'5 حبات | سادة', price:'10 د.إ'},{label:'5 حبات | محشوة', price:'15 د.إ'}] },
-      { name:'مكسرات', price:'3.5 د.إ', desc:'تشكيلة مكسرات محمّصة طازجة.' },
-    ],
-  },
-  cold: {
-    'الموهيتو': [
-      { name:'موهيتو بلو', price:'11 د.إ', desc:'موهيتو منعش بنكهة التوت الأزرق ولمسة نعناع طازج.' },
-      { name:'موهيتو فراولة', price:'11 د.إ', desc:'موهيتو بنكهة الفراولة الطازجة ولمسة نعناع منعش.' },
-      { name:'موهيتو الخوخ', price:'11 د.إ', desc:'موهيتو بنكهة الخوخ الطازج ولمسة نعناع باردة.' },
-    ],
-    'الشاي المثلج': [
-      { name:'شاي مثلج بالفراولة', price:'11 د.إ', desc:'شاي مثلّج منعش بنكهة الفراولة الطبيعية.' },
-      { name:'شاي مثلج بالليمون', price:'11 د.إ', desc:'شاي مثلّج منعش بنكهة الليمون الطازج.' },
-      { name:'شاي مثلج بالخوخ', price:'11 د.إ', desc:'شاي مثلّج منعش بنكهة الخوخ الطبيعية.' },
-    ],
-    'كركديه': [
-      { name:'كركديه', price:'15 د.إ', desc:'مشروب الكركديه البارد، حامضي منعش بلون وردي جذاب.' },
-    ],
-    'الآساي': [
-      { name:'سموذي أساي', price:'20 د.إ', desc:'سموذي آساي كثيف القوام غني بالفواكه الطازجة.' },
-      { name:'أساي باول', price:'20 د.إ', desc:'وعاء آساي طازج مزيّن بالفواكه والمكسرات.' },
-    ],
-  },
-  hot: {
-    '': [
-      { name:'هوت شوكليت', price:'10 د.إ', desc:'شوكولاتة ساخنة غنية وكثيفة، مثالية في الأجواء الباردة.' },
-      { name:'سحلب', price:'10 د.إ', desc:'مشروب السحلب التقليدي الدافئ، بقوام كريمي ولمسة قرفة.' },
-    ],
-  },
-  desserts: {
-    '': [
-      { name:'كيكة التمر', price:'11 د.إ', desc:'كيكة طرية بعجينة التمر الطبيعي، بدون إفراط بالسكر.' },
-      { name:'كيكة اللوتس', price:'11 د.إ', desc:'كيكة غنية بنكهة بسكويت اللوتس الكراميلية.' },
-      { name:'كيك ماربل', price:'5 د.إ', desc:'كيك بطبقات متداخلة من الفانيليا والشوكولاتة.' },
-      { name:'أم علي', price:'10 د.إ', desc:'حلا شرقي دافئ من العجين المقرمش والحليب والمكسرات.' },
-      { name:'سينابون', price:'16 د.إ', desc:'رول القرفة الطري المُغطى بطبقة كريمة سكرية.' },
-      { name:'بسبوسة قشطة', price:'10 د.إ', desc:'بسبوسة طرية محشوة بالقشطة الطازجة.' },
-      { name:'غريبة', desc:'كعك هش يذوب بالفم، من وصفات الحلويات الخليجية التقليدية.',
-        variants:[{label:'2 حبتين', price:'5 د.إ'},{label:'1 كيلو', price:'75 د.إ'}] },
-      { name:'عصيدة تمر', price:'20 د.إ', desc:'عصيدة دافئة بعجينة التمر، حلا تقليدي دافئ.' },
-    ],
-  },
-  dallah: {
-    '': [
-      { name:'شاي والم', desc:'مزيج والم الخاص، يُقدَّم ضمن تشكيلة الدلة التقليدية.',
-        variants:[{label:'1 لتر | بدون دلة', price:'40 د.إ'},{label:'1 لتر | مع دلة', price:'50 د.إ'}] },
-      { name:'شاي عدني', desc:'نكهة عدنية أصيلة، تُقدَّم ضمن تشكيلة الدلة التقليدية.',
-        variants:[{label:'1 لتر | بدون دلة', price:'40 د.إ'},{label:'1 لتر | مع دلة', price:'50 د.إ'}] },
-      { name:'شاي عراقي', desc:'شاي غامق اللون على الطريقة العراقية، يُقدَّم بالدلة.',
-        variants:[{label:'1 لتر | بدون دلة', price:'40 د.إ'},{label:'1 لتر | مع دلة', price:'50 د.إ'}] },
-      { name:'شاي مغربي', desc:'شاي أخضر منعنع على الطريقة المغربية، يُقدَّم بالدلة.',
-        variants:[{label:'1 لتر | بدون دلة', price:'40 د.إ'},{label:'1 لتر | مع دلة', price:'50 د.إ'}] },
-      { name:'شاي حبق', desc:'شاي مُنكَّه بالحبق الطازج، يُقدَّم بالدلة التقليدية.',
-        variants:[{label:'1 لتر | بدون دلة', price:'40 د.إ'},{label:'1 لتر | مع دلة', price:'50 د.إ'}] },
-      { name:'قهوة عربية', desc:'قهوة عربية أصيلة تُقدَّم بالدلة التقليدية مع الهيل.',
-        variants:[{label:'1 لتر | بدون دلة', price:'40 د.إ'},{label:'1 لتر | مع دلة', price:'50 د.إ'}] },
-    ],
-  },
-};
+let CATEGORIES = [];
+let ITEMS = {};
+
+function publicImageUrl(path){
+  if (!path || !sb) return null;
+  return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+async function loadMenuFromSupabase(){
+  if (!sb) return false;
+  const [{ data: cats, error: catErr }, { data: subs, error: subErr }, { data: items, error: itemErr }] = await Promise.all([
+    sb.from('categories').select('*').eq('is_visible', true).order('sort_order'),
+    sb.from('subcategories').select('*').eq('is_visible', true).order('sort_order'),
+    sb.from('items').select('*, item_variants(*), item_options(*)').eq('is_visible', true).order('sort_order'),
+  ]);
+  if (catErr || subErr || itemErr || !cats) return false;
+
+  CATEGORIES = cats.map(c => ({ key: c.id, label: c.label, icon: c.icon || 'tea' }));
+
+  const subsByCat = {};
+  (subs || []).forEach(s => { (subsByCat[s.category_id] = subsByCat[s.category_id] || []).push(s); });
+
+  ITEMS = {};
+  cats.forEach(cat => {
+    const catItems = (items || []).filter(it => it.category_id === cat.id);
+    const catSubs = subsByCat[cat.id] || [];
+    const groups = {};
+
+    function addToGroup(groupLabel, item){
+      (groups[groupLabel] = groups[groupLabel] || []).push(item);
+    }
+
+    if (catSubs.length){
+      catSubs.forEach(s => { groups[s.label] = []; }); // preserve subcategory order even if empty
+    }
+
+    catItems.forEach(it => {
+      const sub = catSubs.find(s => s.id === it.subcategory_id);
+      const groupLabel = sub ? sub.label : '';
+
+      const variants = (it.item_variants || []).slice().sort((a,b)=>a.sort_order-b.sort_order);
+      const hasGroups = variants.some(v => v.group_label);
+      let variantsField, variantGroupsField;
+      if (hasGroups){
+        const seen = [];
+        variants.forEach(v => {
+          const gl = v.group_label || '';
+          let g = seen.find(x => x.label === gl);
+          if (!g){ g = { label: gl, variants: [] }; seen.push(g); }
+          g.variants.push({ label: v.label, price: `${v.price} د.إ` });
+        });
+        variantGroupsField = seen;
+      } else if (variants.length){
+        variantsField = variants.map(v => ({ label: v.label, price: `${v.price} د.إ` }));
+      }
+
+      const options = (it.item_options || []).slice().sort((a,b)=>a.sort_order-b.sort_order).map(o => o.label);
+
+      addToGroup(groupLabel, {
+        name: it.name,
+        price: it.price != null ? `${it.price} د.إ` : null,
+        desc: it.description || '',
+        variants: variantsField,
+        variantGroups: variantGroupsField,
+        optionsLabel: it.options_label || null,
+        options: options.length ? options : undefined,
+        imageUrl: publicImageUrl(it.image_path),
+      });
+    });
+
+    ITEMS[cat.id] = groups;
+  });
+
+  return true;
+}
+
 
 
 /* ================= RENDER ================= */
 const tabsInner = document.getElementById('tabsInner');
 const menuWrap = document.getElementById('menuWrap');
-let activeCat = 'tea';
+let activeCat = null;
 
 function iconFor(catKey){ return ICONS[CATEGORIES.find(c=>c.key===catKey).icon]; }
 function labelFor(catKey){ return CATEGORIES.find(c=>c.key===catKey).label; }
-// Actual uploaded filenames follow the pattern: "اسم القائمة - اسم المنتج.png"
-// Only "tea" and "dallah" have overlapping item names across categories,
-// so only those two use a "اسم القائمة - المنتج" prefix. Every other
-// category's images keep the plain "اسم المنتج" filename as originally set up.
-const CATEGORIES_WITH_PREFIX = ['tea', 'dallah'];
-function imagePathFor(catKey, itemName){
-  const filename = CATEGORIES_WITH_PREFIX.includes(catKey)
-    ? `${labelFor(catKey)} - ${itemName}`
-    : itemName;
-  return `images/${encodeURIComponent(filename)}.png`;
-}
 
 function renderTabs(){
   tabsInner.innerHTML = CATEGORIES.map(c =>
@@ -609,9 +570,11 @@ function renderGrid(){
         ${items.map((item, i) => `
           <button class="card" data-cat="${activeCat}" data-group="${groupName}" data-index="${i}">
             <div class="card-thumb">
-              <img src="${imagePathFor(activeCat, item.name)}" alt="${item.name}" loading="lazy"
-                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-              <div class="thumb-fallback">${icon}</div>
+              ${item.imageUrl
+                ? `<img src="${item.imageUrl}" alt="${item.name}" loading="lazy"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+                : ''}
+              <div class="thumb-fallback"${item.imageUrl ? '' : ' style="display:flex;"'}>${icon}</div>
             </div>
             <div class="card-body">
               <div class="card-name">${item.name}</div>
@@ -675,9 +638,11 @@ function openModal(item, catKey){
   modalCard.innerHTML = `
     <button class="modal-close" id="modalCloseInner" aria-label="إغلاق">✕</button>
     <div class="modal-thumb">
-      <img src="${imagePathFor(catKey, item.name)}" alt="${item.name}" loading="lazy"
-           onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-      <div class="thumb-fallback">${icon}</div>
+      ${item.imageUrl
+        ? `<img src="${item.imageUrl}" alt="${item.name}" loading="lazy"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+        : ''}
+      <div class="thumb-fallback"${item.imageUrl ? '' : ' style="display:flex;"'}>${icon}</div>
     </div>
     <div class="modal-body">
       <div class="modal-top"><h3>${item.name}</h3>${priceRow}</div>
@@ -686,7 +651,7 @@ function openModal(item, catKey){
       ${variantGroupsRow}
       ${optionsHeadingRow}
       ${optionsRow}
-      <div class="placeholder-note">صورة الصنف تجريبية — سيتم استبدالها بصور المنتج الفعلية.</div>
+      ${item.imageUrl ? '' : '<div class="placeholder-note">صورة الصنف تجريبية — سيتم استبدالها بصور المنتج الفعلية.</div>'}
     </div>
   `;
   document.getElementById('modalCloseInner').addEventListener('click', closeModal);
@@ -701,8 +666,19 @@ modalClose.addEventListener('click', closeModal);
 overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
-renderTabs();
-renderGrid();
+(async function initMenu(){
+  menuWrap.innerHTML = '<p style="text-align:center;padding:40px;color:var(--green-mid);">...جاري تحميل القائمة</p>';
+  const ok = await loadMenuFromSupabase();
+  if (!ok || !CATEGORIES.length){
+    menuWrap.innerHTML = '<p style="text-align:center;padding:40px;color:var(--green-mid);">تعذّر تحميل القائمة حاليًا. حاول تحديث الصفحة بعد قليل.</p>';
+    tabsInner.innerHTML = '';
+    return;
+  }
+  activeCat = CATEGORIES[0].key;
+  renderTabs();
+  renderGrid();
+})();
+
 goTo('page-home');
 
 // Prevent the browser from restoring the previous scroll position on refresh —
