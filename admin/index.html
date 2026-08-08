@@ -1,1 +1,1014 @@
 
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة التحكم — والم للشاي المختص</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<style>
+  :root{
+    --beige:#fffcea; --beige-warm:#f4eecd; --beige-deep:#ece2bc;
+    --green:#193d20; --green-mid:#2b5a35; --green-pale:#dbe4d4;
+    --red:#c0392b;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--beige);color:var(--green);font-family:'Tajawal',sans-serif;min-height:100vh;}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;}
+  input,textarea,select{font-family:inherit;font-size:16px;}
+  h1,h2,h3{font-weight:800;}
+
+  /* ===== LOGIN ===== */
+  #loginScreen{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+  }
+  .login-box{
+    background:var(--beige-warm);border-radius:20px;padding:40px 32px;width:100%;max-width:360px;
+    box-shadow:0 10px 30px rgba(25,61,32,.12);
+  }
+  .login-box h1{font-size:1.5rem;text-align:center;margin-bottom:6px;}
+  .login-box p.sub{text-align:center;color:var(--green-mid);font-size:.85rem;margin-bottom:28px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:.8rem;font-weight:700;margin-bottom:6px;color:var(--green-mid);}
+  .field input, .field textarea, .field select{
+    width:100%;padding:11px 14px;border:1.5px solid rgba(25,61,32,.2);border-radius:10px;
+    font-size:16px;background:var(--beige);color:var(--green);
+  }
+  .field input:focus, .field textarea:focus, .field select:focus{outline:2px solid var(--green-mid);}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    padding:12px 20px;border-radius:999px;font-weight:700;font-size:.88rem;
+    transition:opacity .15s;
+  }
+  .btn:hover{opacity:.85;}
+  .btn-primary{background:var(--green);color:var(--beige);width:100%;}
+  .btn-outline{border:1.5px solid var(--green);color:var(--green);}
+  .btn-danger{background:rgba(192,57,43,.1);color:var(--red);}
+  .btn-sm{padding:7px 14px;font-size:.78rem;}
+  #loginError{color:var(--red);font-size:.82rem;text-align:center;margin-top:12px;min-height:18px;}
+
+  /* ===== APP SHELL ===== */
+  #app{display:none;}
+  #app.active{display:block;}
+
+  .admin-header{
+    background:var(--green);color:var(--beige);padding:16px 20px;
+    position:sticky;top:0;z-index:50;
+  }
+  .header-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
+  .admin-header h1{font-size:1rem;}
+  .btn-logout{
+    padding:7px 14px;border-radius:999px;border:1.5px solid rgba(255,252,234,.5);
+    color:var(--beige);font-size:.76rem;font-weight:700;white-space:nowrap;
+  }
+  .top-actions-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .action-btn{
+    display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;
+    background:rgba(255,252,234,.12);border:1.5px solid rgba(255,252,234,.35);
+    color:var(--beige);font-weight:700;font-size:.85rem;white-space:nowrap;
+  }
+  .action-btn:hover{background:var(--beige);color:var(--green);}
+  .action-btn .ic{font-size:1.1rem;}
+
+  .tabs-bar{
+    display:flex;gap:8px;overflow-x:auto;padding:14px 20px;background:var(--beige);
+    border-bottom:2px solid rgba(25,61,32,.12);position:sticky;z-index:40;
+  }
+  .tabs-bar::-webkit-scrollbar{display:none;}
+  .tab-chip{
+    padding:9px 18px;border-radius:999px;border:1.5px solid rgba(25,61,32,.25);
+    color:var(--green-mid);font-weight:700;font-size:.85rem;white-space:nowrap;flex-shrink:0;
+  }
+  .tab-chip.active{background:var(--green);border-color:var(--green);color:var(--beige);}
+
+  .content-area{padding:20px;max-width:720px;margin:0 auto;}
+  .cat-section{margin-bottom:26px;}
+  .cat-section-title{font-size:1rem;font-weight:800;color:var(--green);margin-bottom:10px;text-align:right;}
+  .subcat-title{
+    font-size:.8rem;font-weight:700;color:var(--green-mid);margin:12px 2px 8px;
+    text-align:right;padding-top:8px;border-top:1px dashed rgba(25,61,32,.15);
+  }
+  .subcat-title:first-of-type{border-top:none;padding-top:0;}
+
+  .drag-handle{
+    width:30px;height:30px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    color:var(--green-mid);font-size:1.05rem;cursor:grab;touch-action:none;border-radius:8px;
+  }
+  .drag-handle:active{cursor:grabbing;background:rgba(25,61,32,.08);}
+  .sortable-ghost{opacity:.4;}
+  .sortable-drag{box-shadow:0 6px 16px rgba(25,61,32,.25);}
+  .chk-visible{
+    width:22px;height:22px;border:2px solid var(--green-mid);border-radius:6px;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--beige);
+  }
+  .chk-visible.checked{background:var(--green);border-color:var(--green);}
+  .chk-visible.checked::after{content:'✓';color:var(--beige);font-size:.8rem;font-weight:900;}
+
+  .product-row{
+    display:flex;align-items:center;gap:8px;background:var(--beige-warm);
+    border-radius:12px;padding:10px 12px;margin-bottom:8px;border:1px solid rgba(25,61,32,.1);
+  }
+  .product-row.hidden-item{opacity:.5;}
+  .product-row .name{flex:1;font-size:.88rem;font-weight:700;text-align:right;}
+  .product-row.hidden-item .name{text-decoration:line-through;}
+  .product-row .price-tag{font-size:.76rem;color:var(--green-mid);white-space:nowrap;}
+  .empty-state{text-align:center;padding:40px 20px;color:var(--green-mid);}
+
+  /* ===== EDIT OVERLAY (only visible during add/edit) ===== */
+  .edit-overlay{
+    position:fixed;inset:0;background:rgba(25,61,32,.55);z-index:100;
+    display:none;align-items:center;justify-content:center;padding:20px;
+  }
+  .edit-overlay.show{display:flex;}
+  .edit-sheet{
+    background:var(--beige);width:100%;max-width:480px;border-radius:20px;
+    max-height:88vh;overflow-y:auto;overflow-anchor:none;padding:22px 20px 26px;
+    box-shadow:0 20px 50px rgba(0,0,0,.3);
+  }
+  .edit-sheet h3{font-size:1.1rem;margin-bottom:16px;text-align:center;}
+
+  .live-preview-block{
+    background:var(--beige-deep);border-radius:16px;padding:18px;margin-bottom:20px;text-align:center;
+  }
+  .preview-label{font-size:.68rem;font-weight:800;color:var(--green-mid);letter-spacing:.05em;margin-bottom:10px;text-transform:uppercase;}
+  .preview-card{
+    background:var(--beige-warm);border:1px solid rgba(25,61,32,.12);border-radius:16px;
+    overflow:hidden;max-width:180px;margin:0 auto;
+  }
+  .preview-thumb{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--green-mid);font-size:1.8rem;}
+  .preview-thumb img{width:100%;height:100%;object-fit:cover;}
+  .preview-body{display:flex;min-height:36px;}
+  .preview-name,.preview-price{flex:1;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;padding:6px;text-align:center;}
+  .preview-name{background:var(--beige-warm);color:var(--green);border-radius:0 0 999px 0;}
+  .preview-price{background:var(--green);color:var(--beige);font-weight:900;border-radius:0 0 0 999px;}
+  .preview-variants{max-width:220px;margin:10px auto 0;background:var(--beige-warm);border-radius:12px;padding:10px 14px;text-align:right;}
+  .preview-variants .row{display:flex;justify-content:space-between;font-size:.8rem;padding:5px 0;border-bottom:1px solid rgba(25,61,32,.08);}
+  .preview-variants .row:last-child{border-bottom:none;}
+
+  .subcat-existing-row{
+    display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--beige);
+    border-radius:8px;margin-bottom:6px;
+  }
+  .subcat-existing-row .name{flex:1;font-size:.86rem;font-weight:600;}
+  .section-divider-line{border:none;border-top:2px dashed rgba(25,61,32,.2);margin:18px 0 16px;}
+
+  /* ===== EDITOR FORM (rendered inside the sheet) ===== */
+  .price-mode-tabs{display:flex;gap:8px;margin-bottom:14px;}
+  .price-mode-tabs button{
+    flex:1;padding:8px;border-radius:8px;font-size:.78rem;font-weight:700;
+    border:1.5px solid rgba(25,61,32,.2);color:var(--green-mid);
+  }
+  .price-mode-tabs button.active{background:var(--green);color:var(--beige);border-color:var(--green);}
+  .variant-group-block{background:rgba(25,61,32,.04);border-radius:10px;padding:8px;margin-bottom:8px;}
+  .group-input-label{display:block;font-size:.68rem;font-weight:700;color:var(--green-mid);margin-bottom:3px;}
+  .group-input{
+    width:100%;padding:7px 10px;margin-bottom:6px;border-radius:8px;font-size:.78rem;
+  }
+  /* Shared distinct look for the two "auxiliary grouping" fields — deliberately
+     different from ordinary fields so they're never confused with their
+     neighbors, but identical to each other since they serve the same purpose. */
+  .aux-field-input{
+    border:1.5px dashed #b8860b !important;
+    background:rgba(184,134,11,.07) !important;
+    color:#8a6508 !important;
+  }
+  .aux-field-input::placeholder{color:rgba(138,101,8,.55);}
+  .variant-edit-row{display:flex;gap:6px;align-items:center;}
+  .variant-edit-row input{flex:1;}
+  .variant-edit-row input.price-input{max-width:90px;flex:none;}
+  .remove-row-btn{width:30px;height:30px;flex-shrink:0;background:rgba(192,57,43,.12);color:var(--red);border-radius:8px;font-size:.9rem;}
+  .add-row-btn{font-size:.78rem;color:var(--green-mid);font-weight:700;padding:6px 0;}
+  .image-upload-box{
+    border:2px dashed rgba(25,61,32,.25);border-radius:12px;padding:16px;text-align:center;
+    cursor:pointer;margin-bottom:8px;
+  }
+  .image-upload-box img{max-width:120px;max-height:120px;border-radius:8px;margin:0 auto 8px;}
+  .image-upload-box .hint{font-size:.78rem;color:var(--green-mid);}
+  .remove-img-btn{
+    display:block;margin:0 auto 14px;font-size:.78rem;color:var(--red);font-weight:700;text-decoration:underline;
+  }
+  .form-actions{display:flex;gap:10px;margin-top:16px;}
+
+  .toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:var(--green);color:var(--beige);padding:12px 24px;border-radius:999px;
+    font-size:.85rem;font-weight:700;z-index:200;opacity:0;pointer-events:none;transition:opacity .25s;
+  }
+  .toast.show{opacity:1;}
+  .confirm-overlay{
+    position:fixed;inset:0;background:rgba(25,61,32,.5);z-index:300;
+    display:none;align-items:center;justify-content:center;padding:20px;
+  }
+  .confirm-overlay.show{display:flex;}
+  .confirm-box{
+    background:var(--beige);border-radius:18px;padding:26px 22px;max-width:320px;width:100%;
+    text-align:center;box-shadow:0 12px 30px rgba(0,0,0,.25);
+  }
+  .confirm-box p{font-size:.92rem;line-height:1.7;margin-bottom:20px;}
+  .confirm-actions{display:flex;gap:10px;}
+  .confirm-actions .btn{flex:1;}
+  .spinner{
+    width:24px;height:24px;border:3px solid rgba(25,61,32,.2);border-top-color:var(--green);
+    border-radius:50%;animation:spin .7s linear infinite;margin:20px auto;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<div id="loginScreen">
+  <div class="login-box">
+    <h1>لوحة التحكم</h1>
+    <p class="sub">والم للشاي المختص</p>
+    <div class="field">
+      <label>البريد الإلكتروني</label>
+      <input type="email" id="loginEmail" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>كلمة المرور</label>
+      <input type="password" id="loginPassword" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" id="loginBtn">تسجيل الدخول</button>
+    <div id="loginError"></div>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="app">
+  <div class="admin-header">
+    <div class="header-top">
+      <h1>لوحة تحكم القائمة — والم للشاي المختص</h1>
+      <button class="btn-logout" id="logoutBtn">تسجيل الخروج</button>
+    </div>
+    <div class="top-actions-row">
+      <button class="action-btn" id="addCatBtn"><span class="ic">📋</span> إضافة قائمة</button>
+      <button class="action-btn" id="addSubcatBtn"><span class="ic">📂</span> إضافة قائمة فرعية</button>
+      <button class="action-btn" id="addItemGlobalBtn"><span class="ic">🍽️</span> إضافة منتج</button>
+    </div>
+  </div>
+
+  <div class="tabs-bar" id="tabsBar"></div>
+
+  <div class="content-area" id="contentArea"><div class="spinner"></div></div>
+</div>
+
+<div class="edit-overlay" id="editOverlay">
+  <div class="edit-sheet" id="editSheet"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <p id="confirmMessage"></p>
+    <div class="confirm-actions">
+      <button class="btn btn-danger" id="confirmYesBtn">تأكيد</button>
+      <button class="btn btn-outline" id="confirmNoBtn">تراجع</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ SUPABASE CONFIG ============ */
+const SUPABASE_URL = 'https://edsgxumomdawmgbuurzz.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_El_NpoOjps4qEj7_1Fs-tQ_uncqHS4y';
+let sb;
+try {
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch (e) {
+  document.getElementById('loginError').textContent = 'تعذّر الاتصال — تأكد من اتصال الإنترنت وأعد تحميل الصفحة';
+}
+const BUCKET = 'menu-images';
+
+const ICON_OPTIONS = [
+  { value:'tea', label:'🍵 كوب شاي' },
+  { value:'coffee', label:'☕ فنجان قهوة' },
+  { value:'bakery', label:'🥐 مخبوزات' },
+  { value:'cold', label:'🥤 مشروب بارد' },
+  { value:'hot', label:'☕ مشروب ساخن' },
+  { value:'dessert', label:'🍰 حلويات' },
+  { value:'dallah', label:'🫖 دلة قهوة' },
+];
+
+/* ============ AUTH ============ */
+document.getElementById('loginBtn').addEventListener('click', doLogin);
+document.getElementById('loginPassword').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+async function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  if (!sb) { errEl.textContent = 'تعذّر الاتصال — تأكد من الإنترنت وأعد تحميل الصفحة'; return; }
+  if(!email || !password){ errEl.textContent = 'أدخل البريد وكلمة المرور'; return; }
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) { errEl.textContent = 'بيانات الدخول غير صحيحة'; return; }
+  showApp();
+}
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  location.reload();
+});
+
+async function checkSession(){
+  if (!sb) return;
+  const { data } = await sb.auth.getSession();
+  if (data.session) showApp();
+}
+
+function showApp(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').classList.add('active');
+  loadCategories();
+}
+
+/* ============ TOAST ============ */
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function customConfirm(message){
+  return new Promise(resolve => {
+    const overlay = document.getElementById('confirmOverlay');
+    document.getElementById('confirmMessage').textContent = message;
+    overlay.classList.add('show');
+    const yesBtn = document.getElementById('confirmYesBtn');
+    const noBtn = document.getElementById('confirmNoBtn');
+    function cleanup(result){
+      overlay.classList.remove('show');
+      yesBtn.removeEventListener('click', onYes);
+      noBtn.removeEventListener('click', onNo);
+      resolve(result);
+    }
+    function onYes(){ cleanup(true); }
+    function onNo(){ cleanup(false); }
+    yesBtn.addEventListener('click', onYes);
+    noBtn.addEventListener('click', onNo);
+  });
+}
+
+/* ============ DATA STATE ============ */
+let categories = [];
+let subcategoriesByCat = {}; // cat_id -> [subcategories]
+let allItems = [];           // flat list of every item, with .item_variants/.item_options
+let activeTab = 'all';
+
+async function loadCategories(){
+  const { data, error } = await sb.from('categories').select('*').order('sort_order');
+  if (error) { showToast('خطأ بتحميل القوائم'); return; }
+  categories = data;
+  await loadAllSubcategories();
+  await loadAllItems();
+  renderTabsBar();
+  renderContent();
+}
+
+async function loadAllSubcategories(){
+  const { data, error } = await sb.from('subcategories').select('*').order('sort_order');
+  if (error) { showToast('خطأ بتحميل القوائم الفرعية'); return; }
+  subcategoriesByCat = {};
+  data.forEach(s => {
+    if (!subcategoriesByCat[s.category_id]) subcategoriesByCat[s.category_id] = [];
+    subcategoriesByCat[s.category_id].push(s);
+  });
+}
+
+async function loadAllItems(){
+  const { data, error } = await sb
+    .from('items')
+    .select('*, item_variants(*), item_options(*)')
+    .order('sort_order');
+  if (error) { showToast('خطأ بتحميل المنتجات'); return; }
+  data.forEach(it => {
+    it.item_variants.sort((a,b)=>a.sort_order-b.sort_order);
+    it.item_options.sort((a,b)=>a.sort_order-b.sort_order);
+  });
+  allItems = data;
+}
+
+function catLabel(catId){ const c = categories.find(x=>x.id===catId); return c ? c.label : ''; }
+
+/* ============ TABS BAR ============ */
+function renderTabsBar(){
+  const bar = document.getElementById('tabsBar');
+  bar.innerHTML = `<button class="tab-chip${activeTab==='all'?' active':''}" data-tab="all">الكل</button>` +
+    categories.map(c => `<button class="tab-chip${activeTab===c.id?' active':''}" data-tab="${c.id}">${c.label}</button>`).join('');
+  bar.querySelectorAll('.tab-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeTab = btn.dataset.tab;
+      renderTabsBar();
+      renderContent();
+      scrollToTop();
+    });
+  });
+}
+
+/* ============ CONTENT (flat, grouped by category then subcategory) ============ */
+function renderContent(){
+  const area = document.getElementById('contentArea');
+  const catsToShow = activeTab === 'all' ? categories : categories.filter(c => c.id === activeTab);
+
+  if (!catsToShow.length){
+    area.innerHTML = `<div class="empty-state">ما فيه قوائم بعد. ابدأ بإضافة قائمة من الأعلى.</div>`;
+    return;
+  }
+
+  area.innerHTML = catsToShow.map(cat => {
+    const items = allItems.filter(it => it.category_id === cat.id);
+    const subs = subcategoriesByCat[cat.id] || [];
+
+    let bodyHtml;
+    if (subs.length){
+      const noSub = items.filter(it => !it.subcategory_id);
+      bodyHtml = subs.map(s => {
+        const subItems = items.filter(it => it.subcategory_id === s.id);
+        return `<div class="subcat-title">${s.label}</div>
+                <div class="sortable-group" data-cat="${cat.id}" data-sub="${s.id}">${subItems.map(rowHtml).join('')}</div>`;
+      }).join('') + (noSub.length ? `<div class="subcat-title">بدون قائمة فرعية</div>
+                <div class="sortable-group" data-cat="${cat.id}" data-sub="">${noSub.map(rowHtml).join('')}</div>` : '');
+    } else {
+      bodyHtml = `<div class="sortable-group" data-cat="${cat.id}" data-sub="">${items.map(rowHtml).join('')}</div>`;
+    }
+
+    if (!items.length) bodyHtml += `<div class="empty-state" style="padding:16px;">ما فيه منتجات بهذي القائمة بعد.</div>`;
+
+    return `<div class="cat-section"><div class="cat-section-title">${cat.label}</div>${bodyHtml}</div>`;
+  }).join('');
+
+  area.querySelectorAll('[data-toggle-item]').forEach(el => {
+    el.addEventListener('click', () => toggleItemVisible(el.dataset.toggleItem));
+  });
+  area.querySelectorAll('[data-edit-item]').forEach(el => {
+    el.addEventListener('click', () => openItemEditor(el.dataset.editItem));
+  });
+
+  if (typeof Sortable !== 'undefined'){
+    area.querySelectorAll('.sortable-group').forEach(group => {
+      Sortable.create(group, {
+        handle: '.drag-handle', animation: 150,
+        onEnd: () => persistItemOrder(group)
+      });
+    });
+  }
+}
+
+function rowHtml(it){
+  return `
+    <div class="product-row${it.is_visible?'':' hidden-item'}" data-id="${it.id}">
+      <div class="drag-handle" title="اسحب لإعادة الترتيب">☰</div>
+      <div class="chk-visible${it.is_visible?' checked':''}" data-toggle-item="${it.id}"></div>
+      <div class="name">${it.name}</div>
+      <div class="price-tag">${it.price!=null ? it.price+' د.إ' : 'خيارات متعددة'}</div>
+      <button class="btn btn-sm btn-outline" data-edit-item="${it.id}">تعديل</button>
+    </div>`;
+}
+
+async function toggleItemVisible(itemId){
+  const item = allItems.find(i => i.id === itemId);
+  const newVal = !item.is_visible;
+  const { error } = await sb.from('items').update({ is_visible: newVal }).eq('id', itemId);
+  if (error) { showToast('تعذّر التحديث'); return; }
+  item.is_visible = newVal;
+  renderContent();
+  showToast(newVal ? 'تم الإظهار' : 'تم الإخفاء مؤقتًا');
+}
+
+async function persistItemOrder(groupEl){
+  const catId = groupEl.dataset.cat;
+  const subId = groupEl.dataset.sub || null;
+  const ids = [...groupEl.querySelectorAll('.product-row')].map(el => el.dataset.id);
+  ids.forEach((id, i) => {
+    const item = allItems.find(it => it.id === id);
+    item.sort_order = i + 1;
+  });
+  for (const id of ids){
+    const item = allItems.find(it => it.id === id);
+    await sb.from('items').update({ sort_order: item.sort_order }).eq('id', id);
+  }
+  showToast('تم حفظ الترتيب');
+}
+
+/* ============ SCROLL ============ */
+function scrollToTop(){ window.scrollTo(0, 0); }
+if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }
+window.scrollTo(0, 0);
+
+/* ============ EDIT OVERLAY (shared shell for all editors) ============ */
+function openEditOverlaySheet(html){
+  const sheet = document.getElementById('editSheet');
+  sheet.innerHTML = html;
+  sheet.scrollTop = 0;
+  document.getElementById('editOverlay').classList.add('show');
+}
+function closeEditOverlay(){
+  document.getElementById('editOverlay').classList.remove('show');
+  document.getElementById('editSheet').innerHTML = '';
+}
+
+/* ============ CATEGORY EDITOR (name only, no icon field) ============ */
+function openCategoryEditor(catId){
+  const cat = catId ? categories.find(c => c.id === catId) : { label:'' };
+  const isNew = !catId;
+  let formDirty = false;
+  const html = `
+    <h3>${isNew ? 'قائمة جديدة' : 'تعديل القائمة'}</h3>
+    <div class="field"><label>اسم القائمة</label><input id="catLabelInput" value="${cat.label}"></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="saveCatBtn">حفظ</button>
+      <button class="btn btn-outline" id="cancelCatBtn">إلغاء</button>
+      ${!isNew ? `<button class="btn btn-danger" id="deleteCatBtn">حذف القائمة</button>` : ''}
+    </div>`;
+  openEditOverlaySheet(html);
+  document.getElementById('catLabelInput').addEventListener('input', () => { formDirty = true; });
+  document.getElementById('cancelCatBtn').addEventListener('click', async () => {
+    if (!formDirty || await customConfirm('تراجع عن التعديلات؟ أي تغيير ما حفظته بيروح.')) closeEditOverlay();
+  });
+  document.getElementById('saveCatBtn').addEventListener('click', () => saveCategory(catId));
+  if (!isNew) document.getElementById('deleteCatBtn').addEventListener('click', () => deleteCategory(catId));
+}
+
+async function saveCategory(catId){
+  const label = document.getElementById('catLabelInput').value.trim();
+  if (!label) { showToast('اكتب اسم القائمة'); return; }
+  if (catId){
+    await sb.from('categories').update({ label }).eq('id', catId);
+  } else {
+    const key = 'cat_' + Date.now().toString(36);
+    const maxOrder = categories.length ? Math.max(...categories.map(c=>c.sort_order)) : 0;
+    await sb.from('categories').insert({ label, key, icon: 'tea', sort_order: maxOrder+1 });
+  }
+  showToast('تم الحفظ');
+  closeEditOverlay();
+  await loadCategories();
+}
+
+async function deleteCategory(catId){
+  if (!await customConfirm('حذف هذي القائمة وكل منتجاتها؟ ما يرجع فيه.')) return;
+  await sb.from('categories').delete().eq('id', catId);
+  showToast('تم الحذف');
+  closeEditOverlay();
+  if (activeTab === catId) activeTab = 'all';
+  await loadCategories();
+}
+
+document.getElementById('addCatBtn').addEventListener('click', () => openCategoryEditor(null));
+
+/* ============ SUBCATEGORY EDITOR ============ */
+function openSubcategoryEditor(){
+  const html = `
+    <h3>قوائم فرعية</h3>
+    <div class="field">
+      <label>تتبع أي قائمة رئيسية؟</label>
+      <select id="subcatParentSelect">
+        <option value="">اختر قائمة...</option>
+        ${categories.map(c=>`<option value="${c.id}">${c.label}</option>`).join('')}
+      </select>
+    </div>
+    <div id="subcatExistingWrap" style="display:none;">
+      <label style="font-size:.8rem;font-weight:700;color:var(--green-mid);display:block;margin:14px 0 6px;">الموجودة حاليًا (اسحب لإعادة الترتيب)</label>
+      <div id="subcatExistingList"></div>
+      <div class="field" style="margin-top:14px;">
+        <label>اسم قائمة فرعية جديدة</label>
+        <div style="display:flex;gap:8px;">
+          <input id="newSubcatLabel" style="flex:1;">
+          <button class="btn btn-primary btn-sm" id="addSubcatRowBtn">إضافة</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-outline" id="closeSubcatBtn">إغلاق</button>
+    </div>`;
+  openEditOverlaySheet(html);
+  document.getElementById('closeSubcatBtn').addEventListener('click', closeEditOverlay);
+  document.getElementById('subcatParentSelect').addEventListener('change', renderSubcatExistingList);
+  document.getElementById('addSubcatRowBtn').addEventListener('click', addNewSubcategory);
+}
+
+function renderSubcatExistingList(){
+  const catId = document.getElementById('subcatParentSelect').value;
+  const wrap = document.getElementById('subcatExistingWrap');
+  if (!catId){ wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  const list = subcategoriesByCat[catId] || [];
+  const listEl = document.getElementById('subcatExistingList');
+  listEl.innerHTML = list.map(s => `
+    <div class="subcat-existing-row" data-id="${s.id}">
+      <div class="drag-handle" style="width:26px;height:26px;">☰</div>
+      <div class="chk-visible${s.is_visible?' checked':''}" data-toggle-subcat="${s.id}"></div>
+      <div class="name">${s.label}</div>
+      <button class="remove-row-btn" data-delete-subcat="${s.id}">✕</button>
+    </div>
+  `).join('') || `<p style="font-size:.82rem;color:var(--green-mid);opacity:.7;">ما فيه قوائم فرعية بعد لهذي القائمة.</p>`;
+
+  listEl.querySelectorAll('[data-toggle-subcat]').forEach(el => {
+    el.addEventListener('click', () => toggleSubcatVisible(el.dataset.toggleSubcat, catId));
+  });
+  listEl.querySelectorAll('[data-delete-subcat]').forEach(el => {
+    el.addEventListener('click', () => deleteSubcategory(el.dataset.deleteSubcat, catId));
+  });
+
+  if (typeof Sortable !== 'undefined'){
+    Sortable.create(listEl, {
+      handle: '.drag-handle', animation: 150,
+      onEnd: () => persistSubcatOrder(listEl, catId)
+    });
+  }
+}
+
+async function addNewSubcategory(){
+  const catId = document.getElementById('subcatParentSelect').value;
+  const label = document.getElementById('newSubcatLabel').value.trim();
+  if (!catId) { showToast('اختر القائمة الرئيسية أول'); return; }
+  if (!label) { showToast('اكتب اسم القائمة الفرعية'); return; }
+  const list = subcategoriesByCat[catId] || [];
+  const maxOrder = list.length ? Math.max(...list.map(s=>s.sort_order)) : 0;
+  const { error } = await sb.from('subcategories').insert({ category_id: catId, label, sort_order: maxOrder+1 });
+  if (error) { showToast('تعذّر الإضافة'); return; }
+  document.getElementById('newSubcatLabel').value = '';
+  await loadAllSubcategories();
+  renderSubcatExistingList();
+  renderContent();
+  showToast('تمت الإضافة');
+}
+
+async function toggleSubcatVisible(subId, catId){
+  const sub = subcategoriesByCat[catId].find(s => s.id === subId);
+  const newVal = !sub.is_visible;
+  await sb.from('subcategories').update({ is_visible: newVal }).eq('id', subId);
+  sub.is_visible = newVal;
+  renderSubcatExistingList();
+  showToast(newVal ? 'تم الإظهار' : 'تم الإخفاء مؤقتًا');
+}
+
+async function deleteSubcategory(subId, catId){
+  if (!await customConfirm('حذف هذي القائمة الفرعية؟ المنتجات تحتها ما تنحذف بس تصير بدون قائمة فرعية.')) return;
+  await sb.from('subcategories').delete().eq('id', subId);
+  await loadAllSubcategories();
+  renderSubcatExistingList();
+  renderContent();
+  showToast('تم الحذف');
+}
+
+async function persistSubcatOrder(listEl, catId){
+  const ids = [...listEl.querySelectorAll('.subcat-existing-row')].map(el => el.dataset.id);
+  const list = subcategoriesByCat[catId];
+  ids.forEach((id,i) => { const s = list.find(x=>x.id===id); s.sort_order = i+1; });
+  list.sort((a,b)=>a.sort_order-b.sort_order);
+  for (const s of list){
+    await sb.from('subcategories').update({ sort_order: s.sort_order }).eq('id', s.id);
+  }
+  showToast('تم حفظ الترتيب');
+}
+
+document.getElementById('addSubcatBtn').addEventListener('click', () => openSubcategoryEditor());
+
+/* ============ IMAGE: convert to WebP + upload/remove ============ */
+async function convertToWebP(file, quality=0.85){
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width; canvas.height = bitmap.height;
+  canvas.getContext('2d').drawImage(bitmap, 0, 0);
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/webp', quality));
+}
+
+async function uploadImage(file, itemId){
+  const webpBlob = await convertToWebP(file);
+  const path = `${itemId}.webp`;
+  const { error } = await sb.storage.from(BUCKET).upload(path, webpBlob, { upsert: true, contentType: 'image/webp' });
+  if (error) { showToast('فشل رفع الصورة'); return null; }
+  return { path };
+}
+
+async function removeImageFromStorage(path){
+  if (!path) return;
+  await sb.storage.from(BUCKET).remove([path]);
+}
+
+/* ============ PRODUCT EDITOR ============ */
+let currentPriceMode = 'single';
+let currentVariants = [];
+let currentOptions = [];
+let currentImagePath = null;   // path that will be SAVED (null if removed)
+let originalImagePath = null;  // path that existed when the editor opened
+let currentImageFile = null;   // newly selected file pending upload
+let itemFormDirty = false;
+
+function openItemEditor(itemId){
+  const item = itemId ? allItems.find(i=>i.id===itemId) : {
+    name:'', description:'', price:null, item_variants:[], item_options:[], options_label:'',
+    image_path:null, category_id:'', subcategory_id:null
+  };
+  currentVariants = JSON.parse(JSON.stringify(item.item_variants||[]));
+  currentOptions = (item.item_options||[]).map(o=>o.label);
+  currentImagePath = item.image_path;
+  originalImagePath = item.image_path;
+  currentImageFile = null;
+  currentPriceMode = item.item_variants && item.item_variants.length ? 'variants' : 'single';
+  itemFormDirty = false;
+
+  const isNew = !itemId;
+  const html = `
+    <h3>${isNew ? 'منتج جديد' : 'تعديل المنتج'}</h3>
+
+    <div class="live-preview-block">
+      <div class="preview-label">معاينة حيّة</div>
+      <div id="previewArea"></div>
+    </div>
+
+    <div class="field">
+      <label>ضمن أي قائمة رئيسية؟</label>
+      <select id="itmCategorySelect">
+        <option value="">اختر قائمة...</option>
+        ${categories.map(c=>`<option value="${c.id}" ${c.id===item.category_id?'selected':''}>${c.label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field" id="itmSubcatField" style="display:none;">
+      <label>ضمن أي قائمة فرعية؟</label>
+      <select id="itmSubcategorySelect"></select>
+    </div>
+
+    <div class="field"><label>اسم المنتج</label><input id="itmName" value="${item.name||''}"></div>
+    <div class="field"><label>الوصف</label><textarea id="itmDesc" rows="2">${item.description||''}</textarea></div>
+
+    <div class="image-upload-box" id="imgUploadBox">
+      ${currentImagePath ? `<img src="${sb.storage.from(BUCKET).getPublicUrl(currentImagePath).data.publicUrl}">` : ''}
+      <div class="hint">اضغط لرفع صورة (تتحول تلقائيًا لـ WebP، وما تنرفع فعليًا إلا بعد الحفظ)</div>
+      <input type="file" id="imgFileInput" accept="image/*" style="display:none;">
+    </div>
+    ${currentImagePath ? `<button class="remove-img-btn" id="removeImgBtn">إزالة الصورة</button>` : ''}
+
+    <div class="price-mode-tabs">
+      <button data-mode="single" class="${currentPriceMode==='single'?'active':''}">سعر واحد</button>
+      <button data-mode="variants" class="${currentPriceMode==='variants'?'active':''}">فئات متعددة</button>
+    </div>
+
+    <div id="singlePriceBox" style="${currentPriceMode==='single'?'':'display:none'}">
+      <div class="field"><label>السعر (د.إ)</label><input type="number" step="0.5" id="itmPrice" value="${item.price!=null?item.price:''}"></div>
+    </div>
+
+    <div id="variantsBox" style="${currentPriceMode==='variants'?'':'display:none'}">
+      <label style="font-size:.8rem;font-weight:700;color:var(--green-mid);display:block;margin-bottom:6px;">الفئات والأسعار</label>
+      <div id="variantRows"></div>
+      <button class="add-row-btn" id="addVariantRow">+ إضافة فئة سعر</button>
+    </div>
+
+    <hr class="section-divider-line">
+
+    <div class="field">
+      <label>عنوان قسم الإضافات الجانبية (اختياري، مثال: الحشوات)</label>
+      <input id="itmOptionsLabel" class="aux-field-input" value="${item.options_label||''}">
+    </div>
+    <div>
+      <label style="font-size:.8rem;font-weight:700;color:var(--green-mid);display:block;margin-bottom:6px;">خيارات النكهة (اختياري)</label>
+      <div id="optionRows"></div>
+      <button class="add-row-btn" id="addOptionRow">+ إضافة خيار</button>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" id="saveItemBtn">حفظ</button>
+      <button class="btn btn-outline" id="cancelItemBtn">إلغاء</button>
+      ${!isNew ? `<button class="btn btn-danger" id="deleteItemBtn">حذف المنتج</button>` : ''}
+    </div>`;
+
+  openEditOverlaySheet(html);
+
+  function refreshSubcatDropdown(){
+    const cid = document.getElementById('itmCategorySelect').value;
+    const field = document.getElementById('itmSubcatField');
+    const sel = document.getElementById('itmSubcategorySelect');
+    const subs = subcategoriesByCat[cid] || [];
+    if (!cid || !subs.length){ field.style.display = 'none'; sel.innerHTML=''; return; }
+    field.style.display = '';
+    sel.innerHTML = `<option value="">بدون قائمة فرعية</option>` +
+      subs.map(s=>`<option value="${s.id}" ${s.id===item.subcategory_id?'selected':''}>${s.label}</option>`).join('');
+    sel.addEventListener('change', () => { itemFormDirty = true; });
+  }
+  document.getElementById('itmCategorySelect').addEventListener('change', () => { itemFormDirty = true; refreshSubcatDropdown(); });
+  refreshSubcatDropdown();
+
+  renderVariantRows();
+  renderOptionRows();
+  document.getElementById('itmName').addEventListener('input', () => { itemFormDirty = true; livePreviewFromForm(); });
+  document.getElementById('itmDesc').addEventListener('input', () => { itemFormDirty = true; livePreviewFromForm(); });
+  if (document.getElementById('itmPrice')) document.getElementById('itmPrice').addEventListener('input', () => { itemFormDirty = true; livePreviewFromForm(); });
+  document.getElementById('itmOptionsLabel').addEventListener('input', () => { itemFormDirty = true; });
+
+  document.querySelectorAll('.price-mode-tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      itemFormDirty = true;
+      currentPriceMode = btn.dataset.mode;
+      document.querySelectorAll('.price-mode-tabs button').forEach(b=>b.classList.toggle('active', b===btn));
+      document.getElementById('singlePriceBox').style.display = currentPriceMode==='single' ? '' : 'none';
+      document.getElementById('variantsBox').style.display = currentPriceMode==='variants' ? '' : 'none';
+      livePreviewFromForm();
+    });
+  });
+
+  document.getElementById('addVariantRow').addEventListener('click', () => { itemFormDirty = true; currentVariants.push({label:'',price:'',group_label:''}); renderVariantRows(); });
+  document.getElementById('addOptionRow').addEventListener('click', () => { itemFormDirty = true; currentOptions.push(''); renderOptionRows(); });
+  document.getElementById('imgUploadBox').addEventListener('click', () => document.getElementById('imgFileInput').click());
+  document.getElementById('imgFileInput').addEventListener('change', (e) => { itemFormDirty = true; onImageSelected(e); });
+  const removeBtn = document.getElementById('removeImgBtn');
+  if (removeBtn) removeBtn.addEventListener('click', () => { itemFormDirty = true; onRemoveImageClick(); });
+
+  document.getElementById('cancelItemBtn').addEventListener('click', async () => {
+    if (!itemFormDirty || await customConfirm('تراجع عن التعديلات؟ أي تغيير ما حفظته بيروح.')) closeEditOverlay();
+  });
+  document.getElementById('saveItemBtn').addEventListener('click', () => saveItem(itemId));
+  if (!isNew) document.getElementById('deleteItemBtn').addEventListener('click', () => deleteItem(itemId));
+
+  livePreviewFromForm();
+  document.getElementById('editSheet').scrollTop = 0;
+}
+
+function renderVariantRows(){
+  const wrap = document.getElementById('variantRows');
+  wrap.innerHTML = currentVariants.map((v,i) => `
+    <div class="variant-group-block">
+      <label class="group-input-label">الفئة الفرعية للسعر (اختياري — مثال: سادة / محشوة)</label>
+      <input class="group-input aux-field-input" placeholder="اتركه فاضي لو ما يحتاج تجميع" value="${v.group_label||''}" data-vfield="group_label" data-vidx="${i}">
+      <div class="variant-edit-row">
+        <input placeholder="اسم الفئة (كوب ورق...)" value="${v.label}" data-vfield="label" data-vidx="${i}">
+        <input class="price-input" type="number" step="0.5" placeholder="السعر" value="${v.price}" data-vfield="price" data-vidx="${i}">
+        <button class="remove-row-btn" data-vremove="${i}">✕</button>
+      </div>
+    </div>
+  `).join('');
+  wrap.querySelectorAll('[data-vfield]').forEach(el => {
+    el.addEventListener('input', () => {
+      itemFormDirty = true;
+      currentVariants[el.dataset.vidx][el.dataset.vfield] = el.value;
+      livePreviewFromForm();
+    });
+  });
+  wrap.querySelectorAll('[data-vremove]').forEach(el => {
+    el.addEventListener('click', () => { itemFormDirty = true; currentVariants.splice(el.dataset.vremove,1); renderVariantRows(); livePreviewFromForm(); });
+  });
+}
+
+function renderOptionRows(){
+  const wrap = document.getElementById('optionRows');
+  wrap.innerHTML = currentOptions.map((o,i) => `
+    <div class="variant-edit-row">
+      <input placeholder="اسم الخيار" value="${o}" data-ofield="${i}">
+      <button class="remove-row-btn" data-oremove="${i}">✕</button>
+    </div>
+  `).join('');
+  wrap.querySelectorAll('[data-ofield]').forEach(el => {
+    el.addEventListener('input', () => { itemFormDirty = true; currentOptions[el.dataset.ofield] = el.value; });
+  });
+  wrap.querySelectorAll('[data-oremove]').forEach(el => {
+    el.addEventListener('click', () => { itemFormDirty = true; currentOptions.splice(el.dataset.oremove,1); renderOptionRows(); });
+  });
+}
+
+async function onImageSelected(e){
+  const file = e.target.files[0];
+  if (!file) return;
+  currentImageFile = file;
+  const webpBlob = await convertToWebP(file);
+  const url = URL.createObjectURL(webpBlob);
+  const box = document.getElementById('imgUploadBox');
+  box.querySelectorAll('img').forEach(img => img.remove());
+  box.querySelector('.hint').insertAdjacentHTML('beforebegin', `<img src="${url}">`);
+  livePreviewFromForm();
+}
+
+function onRemoveImageClick(){
+  currentImageFile = null;
+  currentImagePath = null;
+  document.getElementById('imgUploadBox').querySelectorAll('img').forEach(img => img.remove());
+  document.getElementById('removeImgBtn').remove();
+  livePreviewFromForm();
+}
+
+function livePreviewFromForm(){
+  const name = document.getElementById('itmName').value;
+  const price = currentPriceMode === 'single' ? (document.getElementById('itmPrice').value || null) : null;
+  const fakeItem = {
+    name, price: price!=null ? parseFloat(price) : null,
+    item_variants: currentPriceMode==='variants' ? currentVariants.filter(v=>v.label) : []
+  };
+  renderItemPreview(fakeItem);
+}
+
+function renderItemPreview(item){
+  const priceHtml = item.price != null ? `${item.price} د.إ` : (currentPriceMode==='variants' ? 'خيارات متعددة' : 'السعر');
+  let imgHtml = '🍽️';
+  const localImg = document.querySelector('#imgUploadBox img');
+  if (localImg) imgHtml = `<img src="${localImg.src}">`;
+
+  let variantsHtml = '';
+  if (item.item_variants && item.item_variants.length){
+    let lastGroup = undefined;
+    variantsHtml = `<div class="preview-variants">${item.item_variants.map(v=>{
+      const groupHeader = (v.group_label && v.group_label !== lastGroup)
+        ? `<div class="row" style="font-weight:800;border-bottom:none;padding-bottom:0;">${v.group_label}</div>` : '';
+      lastGroup = v.group_label;
+      return groupHeader + `<div class="row"><span>${v.label}</span><span>${v.price} د.إ</span></div>`;
+    }).join('')}</div>`;
+  }
+
+  document.getElementById('previewArea').innerHTML = `
+    <div class="preview-card">
+      <div class="preview-thumb">${imgHtml}</div>
+      <div class="preview-body">
+        <div class="preview-name">${item.name||'اسم المنتج'}</div>
+        <div class="preview-price">${priceHtml}</div>
+      </div>
+    </div>
+    ${variantsHtml}
+  `;
+}
+
+async function saveItem(itemId){
+  const name = document.getElementById('itmName').value.trim();
+  if (!name) { showToast('اكتب اسم المنتج'); return; }
+  const selectedCatId = document.getElementById('itmCategorySelect').value;
+  if (!selectedCatId) { showToast('اختر القائمة الرئيسية'); return; }
+  const subcatSelect = document.getElementById('itmSubcategorySelect');
+  const selectedSubcatId = (subcatSelect && subcatSelect.value) ? subcatSelect.value : null;
+  const description = document.getElementById('itmDesc').value.trim();
+  const options_label = document.getElementById('itmOptionsLabel').value.trim() || null;
+  const price = currentPriceMode === 'single'
+    ? (document.getElementById('itmPrice').value ? parseFloat(document.getElementById('itmPrice').value) : null)
+    : null;
+
+  let savedItemId = itemId;
+  if (itemId){
+    await sb.from('items').update({
+      name, description, price, options_label,
+      category_id: selectedCatId, subcategory_id: selectedSubcatId
+    }).eq('id', itemId);
+  } else {
+    const maxOrder = allItems.filter(i=>i.category_id===selectedCatId).reduce((m,i)=>Math.max(m,i.sort_order),0);
+    const { data, error } = await sb.from('items').insert({
+      category_id: selectedCatId, subcategory_id: selectedSubcatId,
+      name, description, price, options_label, sort_order: maxOrder+1
+    }).select().single();
+    if (error) { showToast('تعذّر الحفظ'); return; }
+    savedItemId = data.id;
+  }
+
+  // image: upload new file if selected; otherwise if it was explicitly removed, delete old one from storage
+  let imageUploadFailed = false;
+  if (currentImageFile){
+    const result = await uploadImage(currentImageFile, savedItemId);
+    if (result) {
+      await sb.from('items').update({ image_path: result.path }).eq('id', savedItemId);
+      if (originalImagePath && originalImagePath !== result.path) await removeImageFromStorage(originalImagePath);
+    } else {
+      imageUploadFailed = true; // old image is intentionally left untouched here
+    }
+  } else if (originalImagePath && currentImagePath === null){
+    await removeImageFromStorage(originalImagePath);
+    await sb.from('items').update({ image_path: null }).eq('id', savedItemId);
+  }
+
+  // replace variants
+  await sb.from('item_variants').delete().eq('item_id', savedItemId);
+  if (currentPriceMode === 'variants'){
+    const rows = currentVariants.filter(v=>v.label && v.price!=='').map((v,i)=>({
+      item_id: savedItemId, label: v.label, price: parseFloat(v.price), sort_order: i+1,
+      group_label: (v.group_label && v.group_label.trim()) ? v.group_label.trim() : null
+    }));
+    if (rows.length) await sb.from('item_variants').insert(rows);
+  }
+
+  // replace options
+  await sb.from('item_options').delete().eq('item_id', savedItemId);
+  const optRows = currentOptions.filter(o=>o.trim()).map((o,i)=>({ item_id: savedItemId, label:o, sort_order:i+1 }));
+  if (optRows.length) await sb.from('item_options').insert(optRows);
+
+  showToast(imageUploadFailed ? 'تم حفظ البيانات، لكن فشل رفع الصورة — جرّب رفعها مرة ثانية' : 'تم الحفظ');
+  closeEditOverlay();
+  await loadAllItems();
+  renderContent();
+}
+
+async function deleteItem(itemId){
+  if (!await customConfirm('حذف هذا المنتج نهائيًا؟')) return;
+  const item = allItems.find(i => i.id === itemId);
+  if (item && item.image_path) await removeImageFromStorage(item.image_path);
+  await sb.from('items').delete().eq('id', itemId);
+  showToast('تم الحذف');
+  closeEditOverlay();
+  await loadAllItems();
+  renderContent();
+}
+
+document.getElementById('addItemGlobalBtn').addEventListener('click', () => openItemEditor(null));
+
+/* ============ INIT ============ */
+checkSession();
+
+</script>
+</body>
+</html>
