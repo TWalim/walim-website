@@ -1,0 +1,14 @@
+{
+  "name": "والم",
+  "short_name": "والم",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fffcea",
+  "theme_color": "#193d20",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/images/icon-menu-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/images/icon-menu-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
