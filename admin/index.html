@@ -7,6 +7,12 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>لوحة التحكم — والم للشاي المختص</title>
+<link rel="manifest" href="/admin/manifest.json">
+<meta name="theme-color" content="#193d20">
+<link rel="apple-touch-icon" href="/images/icon-admin-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="لوحة التحكم">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
@@ -65,14 +71,14 @@
     padding:7px 14px;border-radius:999px;border:1.5px solid rgba(255,252,234,.5);
     color:var(--beige);font-size:.76rem;font-weight:700;white-space:nowrap;
   }
-  .top-actions-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .top-actions-row{display:flex;flex-wrap:wrap;gap:8px;}
   .action-btn{
-    display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;
+    display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 10px;border-radius:12px;
     background:rgba(255,252,234,.12);border:1.5px solid rgba(255,252,234,.35);
-    color:var(--beige);font-weight:700;font-size:.85rem;white-space:nowrap;
+    color:var(--beige);font-weight:700;font-size:.74rem;white-space:nowrap;
   }
   .action-btn:hover{background:var(--beige);color:var(--green);}
-  .action-btn .ic{font-size:1.1rem;}
+  .action-btn .ic{font-size:.95rem;}
 
   .tabs-bar{
     display:flex;gap:8px;overflow-x:auto;padding:14px 20px;background:var(--beige);
@@ -242,7 +248,7 @@
 <div id="app">
   <div class="admin-header">
     <div class="header-top">
-      <h1>لوحة تحكم القائمة — والم للشاي المختص</h1>
+      <h1>لوحة التحكم - والم للشاي المختص</h1>
       <button class="btn-logout" id="logoutBtn">تسجيل الخروج</button>
     </div>
     <div class="top-actions-row">
@@ -369,6 +375,9 @@ async function loadCategories(){
   const { data, error } = await sb.from('categories').select('*').order('sort_order');
   if (error) { showToast('خطأ بتحميل القوائم'); return; }
   categories = data;
+  if (categories.length && (activeTab === 'all' || !categories.some(c => c.id === activeTab))) {
+    activeTab = categories[0].id;
+  }
   await loadAllSubcategories();
   await loadAllItems();
   renderTabsBar();
@@ -403,8 +412,7 @@ function catLabel(catId){ const c = categories.find(x=>x.id===catId); return c ?
 /* ============ TABS BAR ============ */
 function renderTabsBar(){
   const bar = document.getElementById('tabsBar');
-  bar.innerHTML = `<button class="tab-chip${activeTab==='all'?' active':''}" data-tab="all">الكل</button>` +
-    categories.map(c => `<button class="tab-chip${activeTab===c.id?' active':''}" data-tab="${c.id}">${c.label}</button>`).join('');
+  bar.innerHTML = categories.map(c => `<button class="tab-chip${activeTab===c.id?' active':''}" data-tab="${c.id}">${c.label}</button>`).join('');
   bar.querySelectorAll('.tab-chip').forEach(btn => {
     btn.addEventListener('click', () => {
       activeTab = btn.dataset.tab;
@@ -418,7 +426,7 @@ function renderTabsBar(){
 /* ============ CONTENT (flat, grouped by category then subcategory) ============ */
 function renderContent(){
   const area = document.getElementById('contentArea');
-  const catsToShow = activeTab === 'all' ? categories : categories.filter(c => c.id === activeTab);
+  const catsToShow = categories.filter(c => c.id === activeTab);
 
   if (!catsToShow.length){
     area.innerHTML = `<div class="empty-state">ما فيه قوائم بعد. ابدأ بإضافة قائمة من الأعلى.</div>`;
@@ -703,8 +711,11 @@ async function uploadImage(file, itemId){
   }
   const { blob, ext, contentType } = converted;
   if (!blob) { showToast('فشل تجهيز الصورة — جرّب صورة ثانية'); return null; }
-  const path = `${itemId}.${ext}`;
-  const { error } = await sb.storage.from(BUCKET).upload(path, blob, { upsert: true, contentType });
+  // A unique filename every time (instead of always "{itemId}.ext") guarantees this
+  // exact URL was never seen before by any cache layer (CDN or browser), so there is
+  // zero chance of an old cached copy being served instead of the fresh upload.
+  const path = `${itemId}-${Date.now()}.${ext}`;
+  const { error } = await sb.storage.from(BUCKET).upload(path, blob, { upsert: true, contentType, cacheControl: '3600' });
   if (error) { showToast('فشل رفع الصورة'); return null; }
   return { path };
 }
