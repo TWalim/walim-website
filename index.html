@@ -7,6 +7,12 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>والم للشاي المختص</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#193d20">
+<link rel="apple-touch-icon" href="/images/icon-menu-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="والم">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&family=Noto+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
@@ -226,9 +232,9 @@
     border:1px solid rgba(25,61,32,.2);color:var(--green);font-size:1.05rem;
     display:flex;align-items:center;justify-content:center;
   }
-  .promo-thumb{width:100%;aspect-ratio:1;background:var(--beige-deep);overflow:hidden;}
-  .promo-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-  .promo-desc{padding:18px 22px 22px;font-size:.95rem;line-height:1.85;color:var(--ink-on-paper);text-align:center;}
+  .promo-thumb{width:100%;background:var(--beige-deep);overflow:hidden;text-align:center;line-height:0;}
+  .promo-thumb img{max-width:100%;max-height:38vh;width:auto;height:auto;display:inline-block;}
+  .promo-desc{padding:18px 22px 22px;font-size:.95rem;line-height:1.85;color:var(--ink-on-paper);text-align:center;white-space:pre-line;}
   .modal-price{font-weight:900;color:var(--green-mid);font-size:1.2rem;white-space:nowrap;font-family:'Tajawal';}
   .modal-desc{font-size:.92rem;line-height:1.85;color:#4a4530;margin-bottom:16px;}
   .variant-list{
