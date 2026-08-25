@@ -1,9 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>لوحة التحكم — والم للشاي المختص</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -247,6 +249,7 @@
       <button class="action-btn" id="addCatBtn"><span class="ic">📋</span> إضافة قائمة</button>
       <button class="action-btn" id="addSubcatBtn"><span class="ic">📂</span> إضافة قائمة فرعية</button>
       <button class="action-btn" id="addItemGlobalBtn"><span class="ic">🍽️</span> إضافة منتج</button>
+      <button class="action-btn" id="promoBtn"><span class="ic">📣</span> الإعلان الترويجي</button>
     </div>
   </div>
 
@@ -277,7 +280,9 @@ const SUPABASE_URL = 'https://edsgxumomdawmgbuurzz.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_El_NpoOjps4qEj7_1Fs-tQ_uncqHS4y';
 let sb;
 try {
-  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    global: { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } }
+  });
 } catch (e) {
   document.getElementById('loginError').textContent = 'تعذّر الاتصال — تأكد من اتصال الإنترنت وأعد تحميل الصفحة';
 }
@@ -670,18 +675,36 @@ async function persistSubcatOrder(listEl, catId){
 document.getElementById('addSubcatBtn').addEventListener('click', () => openSubcategoryEditor());
 
 /* ============ IMAGE: convert to WebP + upload/remove ============ */
-async function convertToWebP(file, quality=0.85){
+// iOS Safari's WebP export via canvas.toBlob is unreliable across versions —
+// sometimes it works, sometimes it silently returns null or a broken blob.
+// We try WebP first, and transparently fall back to JPEG (universally
+// supported everywhere) if the WebP attempt fails or looks invalid.
+async function convertImage(file, quality=0.85){
   const bitmap = await createImageBitmap(file);
   const canvas = document.createElement('canvas');
   canvas.width = bitmap.width; canvas.height = bitmap.height;
   canvas.getContext('2d').drawImage(bitmap, 0, 0);
-  return new Promise(resolve => canvas.toBlob(resolve, 'image/webp', quality));
+
+  const webpBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', quality));
+  if (webpBlob && webpBlob.size > 100) {
+    return { blob: webpBlob, ext: 'webp', contentType: 'image/webp' };
+  }
+  // fallback: JPEG works reliably on every browser/device
+  const jpegBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+  return { blob: jpegBlob, ext: 'jpg', contentType: 'image/jpeg' };
 }
 
 async function uploadImage(file, itemId){
-  const webpBlob = await convertToWebP(file);
-  const path = `${itemId}.webp`;
-  const { error } = await sb.storage.from(BUCKET).upload(path, webpBlob, { upsert: true, contentType: 'image/webp' });
+  let converted;
+  try {
+    converted = await convertImage(file);
+  } catch (err) {
+    converted = { blob: file, ext: (file.type.includes('png') ? 'png' : 'jpg'), contentType: file.type || 'image/jpeg' };
+  }
+  const { blob, ext, contentType } = converted;
+  if (!blob) { showToast('فشل تجهيز الصورة — جرّب صورة ثانية'); return null; }
+  const path = `${itemId}.${ext}`;
+  const { error } = await sb.storage.from(BUCKET).upload(path, blob, { upsert: true, contentType });
   if (error) { showToast('فشل رفع الصورة'); return null; }
   return { path };
 }
@@ -873,8 +896,12 @@ async function onImageSelected(e){
   const file = e.target.files[0];
   if (!file) return;
   currentImageFile = file;
-  const webpBlob = await convertToWebP(file);
-  const url = URL.createObjectURL(webpBlob);
+  let previewBlob = file;
+  try {
+    const { blob } = await convertImage(file);
+    if (blob) previewBlob = blob;
+  } catch (err) { /* fall back to showing the raw file below */ }
+  const url = URL.createObjectURL(previewBlob);
   const box = document.getElementById('imgUploadBox');
   box.querySelectorAll('img').forEach(img => img.remove());
   box.querySelector('.hint').insertAdjacentHTML('beforebegin', `<img src="${url}">`);
@@ -1006,10 +1033,113 @@ async function deleteItem(itemId){
 
 document.getElementById('addItemGlobalBtn').addEventListener('click', () => openItemEditor(null));
 
+/* ============ PROMO ANNOUNCEMENT ============ */
+let promoImagePath = null;
+let promoOriginalImagePath = null;
+let promoImageFile = null;
+let promoActive = false;
+let promoFormDirty = false;
+
+async function openPromoEditor(){
+  const { data, error } = await sb.from('promo_announcement').select('*').eq('id', 1).single();
+  if (error) { showToast('تعذّر تحميل الإعلان'); return; }
+
+  promoActive = data.is_active;
+  promoImagePath = data.image_path;
+  promoOriginalImagePath = data.image_path;
+  promoImageFile = null;
+  promoFormDirty = false;
+
+  const html = `
+    <h3>الإعلان الترويجي</h3>
+    <div class="field" style="display:flex;align-items:center;gap:10px;">
+      <div class="chk-visible${promoActive?' checked':''}" id="promoActiveToggle"></div>
+      <label style="margin:0;">تفعيل الإعلان على الموقع</label>
+    </div>
+
+    <div class="image-upload-box" id="promoImgBox">
+      ${promoImagePath ? `<img src="${sb.storage.from(BUCKET).getPublicUrl(promoImagePath).data.publicUrl}">` : ''}
+      <div class="hint">اضغط لرفع صورة مربّعة (تتحول تلقائيًا لـ WebP)</div>
+      <input type="file" id="promoImgInput" accept="image/*" style="display:none;">
+    </div>
+    ${promoImagePath ? `<button class="remove-img-btn" id="removePromoImgBtn">إزالة الصورة</button>` : ''}
+
+    <div class="field">
+      <label>الوصف (اختياري)</label>
+      <textarea id="promoDesc" rows="3">${data.description || ''}</textarea>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" id="savePromoBtn">حفظ</button>
+      <button class="btn btn-outline" id="cancelPromoBtn">إلغاء</button>
+    </div>`;
+
+  openEditOverlaySheet(html);
+
+  document.getElementById('promoActiveToggle').addEventListener('click', () => {
+    promoActive = !promoActive;
+    promoFormDirty = true;
+    document.getElementById('promoActiveToggle').classList.toggle('checked', promoActive);
+  });
+  document.getElementById('promoDesc').addEventListener('input', () => { promoFormDirty = true; });
+  document.getElementById('promoImgBox').addEventListener('click', () => document.getElementById('promoImgInput').click());
+  document.getElementById('promoImgInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    promoImageFile = file;
+    promoFormDirty = true;
+    let previewBlob = file;
+    try { const { blob } = await convertImage(file); if (blob) previewBlob = blob; } catch(err){}
+    const url = URL.createObjectURL(previewBlob);
+    const box = document.getElementById('promoImgBox');
+    box.querySelectorAll('img').forEach(img => img.remove());
+    box.querySelector('.hint').insertAdjacentHTML('beforebegin', `<img src="${url}">`);
+  });
+  const removeBtn = document.getElementById('removePromoImgBtn');
+  if (removeBtn) removeBtn.addEventListener('click', () => {
+    promoFormDirty = true;
+    promoImageFile = null;
+    promoImagePath = null;
+    document.getElementById('promoImgBox').querySelectorAll('img').forEach(img => img.remove());
+    removeBtn.remove();
+  });
+
+  document.getElementById('cancelPromoBtn').addEventListener('click', async () => {
+    if (!promoFormDirty || await customConfirm('تراجع عن التعديلات؟ أي تغيير ما حفظته بيروح.')) closeEditOverlay();
+  });
+  document.getElementById('savePromoBtn').addEventListener('click', savePromo);
+}
+
+async function savePromo(){
+  const description = document.getElementById('promoDesc').value.trim() || null;
+  let imageUploadFailed = false;
+
+  if (promoImageFile){
+    const result = await uploadImage(promoImageFile, 'promo-announcement');
+    if (result) {
+      promoImagePath = result.path;
+      if (promoOriginalImagePath && promoOriginalImagePath !== result.path) await removeImageFromStorage(promoOriginalImagePath);
+    } else {
+      imageUploadFailed = true;
+    }
+  } else if (promoOriginalImagePath && promoImagePath === null){
+    await removeImageFromStorage(promoOriginalImagePath);
+  }
+
+  const { error } = await sb.from('promo_announcement').update({
+    is_active: promoActive, image_path: promoImagePath, description, updated_at: new Date().toISOString()
+  }).eq('id', 1);
+
+  if (error) { showToast('تعذّر الحفظ'); return; }
+  showToast(imageUploadFailed ? 'تم حفظ البيانات، لكن فشل رفع الصورة — جرّب رفعها مرة ثانية' : 'تم الحفظ');
+  closeEditOverlay();
+}
+
+document.getElementById('promoBtn').addEventListener('click', openPromoEditor);
+
 /* ============ INIT ============ */
 checkSession();
 
 </script>
 </body>
 </html>
- 
