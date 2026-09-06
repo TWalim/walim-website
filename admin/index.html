@@ -51,7 +51,8 @@
     transition:opacity .15s;
   }
   .btn:hover{opacity:.85;}
-  .btn-primary{background:var(--green);color:var(--beige);width:100%;}
+  .btn-primary{background:var(--green);color:var(--beige);}
+  .login-box .btn-primary{width:100%;}
   .btn-outline{border:1.5px solid var(--green);color:var(--green);}
   .btn-danger{background:rgba(192,57,43,.1);color:var(--red);}
   .btn-sm{padding:7px 14px;font-size:.78rem;}
@@ -122,6 +123,24 @@
   .product-row .name{flex:1;font-size:.88rem;font-weight:700;text-align:right;}
   .product-row.hidden-item .name{text-decoration:line-through;}
   .product-row .price-tag{font-size:.76rem;color:var(--green-mid);white-space:nowrap;}
+  .discount-tag{
+    background:#c0392b;color:#fff;font-size:.68rem;font-weight:800;
+    padding:2px 8px;border-radius:999px;white-space:nowrap;
+  }
+  .method-tabs{display:flex;gap:8px;margin-bottom:16px;}
+  .method-tabs button{
+    flex:1;padding:9px 4px;border-radius:10px;font-size:.74rem;font-weight:700;
+    border:1.5px solid rgba(25,61,32,.2);color:var(--green-mid);background:none;
+  }
+  .method-tabs button.active{background:var(--green);color:var(--beige);border-color:var(--green);}
+  .active-discounts{margin-top:20px;padding-top:16px;border-top:2px dashed rgba(25,61,32,.15);}
+  .active-discounts h4{font-size:.85rem;margin-bottom:10px;color:var(--green-mid);}
+  .discount-row{
+    display:flex;align-items:center;gap:8px;background:var(--beige-warm);padding:9px 12px;
+    border-radius:10px;margin-bottom:6px;font-size:.82rem;
+  }
+  .discount-row .target{flex:1;font-weight:700;}
+  .discount-row .pct{background:#c0392b;color:#fff;font-weight:800;padding:2px 8px;border-radius:999px;font-size:.72rem;}
   .empty-state{text-align:center;padding:40px 20px;color:var(--green-mid);}
 
   /* ===== EDIT OVERLAY (only visible during add/edit) ===== */
@@ -160,6 +179,12 @@
     border-radius:8px;margin-bottom:6px;
   }
   .subcat-existing-row .name{flex:1;font-size:.86rem;font-weight:600;}
+  .inline-rename-input{
+    width:100%;padding:5px 8px;font-size:.86rem;border:1.5px solid var(--green-mid);
+    border-radius:6px;background:var(--beige);color:var(--green);
+  }
+  .edit-name-btn{width:28px;height:28px;flex-shrink:0;font-size:.85rem;border-radius:8px;}
+  .edit-name-btn:hover{background:rgba(25,61,32,.08);}
   .section-divider-line{border:none;border-top:2px dashed rgba(25,61,32,.2);margin:18px 0 16px;}
 
   /* ===== EDITOR FORM (rendered inside the sheet) ===== */
@@ -197,7 +222,7 @@
   .remove-img-btn{
     display:block;margin:0 auto 14px;font-size:.78rem;color:var(--red);font-weight:700;text-decoration:underline;
   }
-  .form-actions{display:flex;gap:10px;margin-top:16px;}
+  .form-actions{display:flex;gap:10px;margin-top:16px;justify-content:center;}
 
   .toast{
     position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
@@ -252,10 +277,11 @@
       <button class="btn-logout" id="logoutBtn">تسجيل الخروج</button>
     </div>
     <div class="top-actions-row">
-      <button class="action-btn" id="addCatBtn"><span class="ic">📋</span> إضافة قائمة</button>
-      <button class="action-btn" id="addSubcatBtn"><span class="ic">📂</span> إضافة قائمة فرعية</button>
+      <button class="action-btn" id="addCatBtn"><span class="ic">📋</span> القوائم</button>
+      <button class="action-btn" id="addSubcatBtn"><span class="ic">📂</span> القوائم الفرعية</button>
       <button class="action-btn" id="addItemGlobalBtn"><span class="ic">🍽️</span> إضافة منتج</button>
       <button class="action-btn" id="promoBtn"><span class="ic">📣</span> الإعلان الترويجي</button>
+      <button class="action-btn" id="discountsBtn"><span class="ic">🏷️</span> الخصومات</button>
     </div>
   </div>
 
@@ -373,7 +399,7 @@ let activeTab = 'all';
 
 async function loadCategories(){
   const { data, error } = await sb.from('categories').select('*').order('sort_order');
-  if (error) { showToast('خطأ بتحميل القوائم'); return; }
+  if (error) { showToast('تعذّر تحميل القوائم'); return; }
   categories = data;
   if (categories.length && (activeTab === 'all' || !categories.some(c => c.id === activeTab))) {
     activeTab = categories[0].id;
@@ -386,7 +412,7 @@ async function loadCategories(){
 
 async function loadAllSubcategories(){
   const { data, error } = await sb.from('subcategories').select('*').order('sort_order');
-  if (error) { showToast('خطأ بتحميل القوائم الفرعية'); return; }
+  if (error) { showToast('تعذّر تحميل القوائم الفرعية'); return; }
   subcategoriesByCat = {};
   data.forEach(s => {
     if (!subcategoriesByCat[s.category_id]) subcategoriesByCat[s.category_id] = [];
@@ -399,7 +425,7 @@ async function loadAllItems(){
     .from('items')
     .select('*, item_variants(*), item_options(*)')
     .order('sort_order');
-  if (error) { showToast('خطأ بتحميل المنتجات'); return; }
+  if (error) { showToast('تعذّر تحميل المنتجات'); return; }
   data.forEach(it => {
     it.item_variants.sort((a,b)=>a.sort_order-b.sort_order);
     it.item_options.sort((a,b)=>a.sort_order-b.sort_order);
@@ -429,7 +455,7 @@ function renderContent(){
   const catsToShow = categories.filter(c => c.id === activeTab);
 
   if (!catsToShow.length){
-    area.innerHTML = `<div class="empty-state">ما فيه قوائم بعد. ابدأ بإضافة قائمة من الأعلى.</div>`;
+    area.innerHTML = `<div class="empty-state">لا توجد قوائم حاليًا. يمكنك البدء بإضافة قائمة من الأعلى.</div>`;
     return;
   }
 
@@ -450,7 +476,7 @@ function renderContent(){
       bodyHtml = `<div class="sortable-group" data-cat="${cat.id}" data-sub="">${items.map(rowHtml).join('')}</div>`;
     }
 
-    if (!items.length) bodyHtml += `<div class="empty-state" style="padding:16px;">ما فيه منتجات بهذي القائمة بعد.</div>`;
+    if (!items.length) bodyHtml += `<div class="empty-state" style="padding:16px;">لا توجد منتجات ضمن هذه القائمة حاليًا.</div>`;
 
     return `<div class="cat-section"><div class="cat-section-title">${cat.label}</div>${bodyHtml}</div>`;
   }).join('');
@@ -473,11 +499,13 @@ function renderContent(){
 }
 
 function rowHtml(it){
+  const discountTag = it.discount_percent ? `<span class="discount-tag">-${it.discount_percent}%</span>` : '';
   return `
     <div class="product-row${it.is_visible?'':' hidden-item'}" data-id="${it.id}">
       <div class="drag-handle" title="اسحب لإعادة الترتيب">☰</div>
       <div class="chk-visible${it.is_visible?' checked':''}" data-toggle-item="${it.id}"></div>
       <div class="name">${it.name}</div>
+      ${discountTag}
       <div class="price-tag">${it.price!=null ? it.price+' د.إ' : 'خيارات متعددة'}</div>
       <button class="btn btn-sm btn-outline" data-edit-item="${it.id}">تعديل</button>
     </div>`;
@@ -526,52 +554,135 @@ function closeEditOverlay(){
 }
 
 /* ============ CATEGORY EDITOR (name only, no icon field) ============ */
-function openCategoryEditor(catId){
-  const cat = catId ? categories.find(c => c.id === catId) : { label:'' };
-  const isNew = !catId;
-  let formDirty = false;
+function openCategoryManager(){
   const html = `
-    <h3>${isNew ? 'قائمة جديدة' : 'تعديل القائمة'}</h3>
-    <div class="field"><label>اسم القائمة</label><input id="catLabelInput" value="${cat.label}"></div>
+    <h3>القوائم الرئيسية</h3>
+    <label style="font-size:.8rem;font-weight:700;color:var(--green-mid);display:block;margin-bottom:6px;">الموجودة حاليًا (اسحب لإعادة الترتيب)</label>
+    <div id="catManagerList"></div>
+    <div class="field" style="margin-top:14px;">
+      <label>اسم قائمة رئيسية جديدة</label>
+      <div style="display:flex;gap:8px;">
+        <input id="newCatLabel" style="flex:1;">
+        <button class="btn btn-primary btn-sm" id="addCatRowBtn">إضافة</button>
+      </div>
+    </div>
     <div class="form-actions">
-      <button class="btn btn-primary" id="saveCatBtn">حفظ</button>
-      <button class="btn btn-outline" id="cancelCatBtn">إلغاء</button>
-      ${!isNew ? `<button class="btn btn-danger" id="deleteCatBtn">حذف القائمة</button>` : ''}
+      <button class="btn btn-outline" id="closeCatManagerBtn">إغلاق</button>
     </div>`;
   openEditOverlaySheet(html);
-  document.getElementById('catLabelInput').addEventListener('input', () => { formDirty = true; });
-  document.getElementById('cancelCatBtn').addEventListener('click', async () => {
-    if (!formDirty || await customConfirm('تراجع عن التعديلات؟ أي تغيير ما حفظته بيروح.')) closeEditOverlay();
-  });
-  document.getElementById('saveCatBtn').addEventListener('click', () => saveCategory(catId));
-  if (!isNew) document.getElementById('deleteCatBtn').addEventListener('click', () => deleteCategory(catId));
+  renderCatManagerList();
+  document.getElementById('closeCatManagerBtn').addEventListener('click', closeEditOverlay);
+  document.getElementById('addCatRowBtn').addEventListener('click', addNewCategory);
 }
 
-async function saveCategory(catId){
-  const label = document.getElementById('catLabelInput').value.trim();
-  if (!label) { showToast('اكتب اسم القائمة'); return; }
-  if (catId){
-    await sb.from('categories').update({ label }).eq('id', catId);
-  } else {
-    const key = 'cat_' + Date.now().toString(36);
-    const maxOrder = categories.length ? Math.max(...categories.map(c=>c.sort_order)) : 0;
-    await sb.from('categories').insert({ label, key, icon: 'tea', sort_order: maxOrder+1 });
+function renderCatManagerList(){
+  const listEl = document.getElementById('catManagerList');
+  listEl.innerHTML = categories.map(c => `
+    <div class="subcat-existing-row" data-id="${c.id}">
+      <div class="drag-handle" style="width:26px;height:26px;">☰</div>
+      <div class="chk-visible${c.is_visible?' checked':''}" data-toggle-cat="${c.id}"></div>
+      <div class="name" data-cat-name="${c.id}">${c.label}</div>
+      <button class="edit-name-btn" data-edit-cat="${c.id}" title="تعديل الاسم">✏️</button>
+      <button class="remove-row-btn" data-delete-cat="${c.id}">✕</button>
+    </div>
+  `).join('') || `<p style="font-size:.82rem;color:var(--green-mid);opacity:.7;">لا توجد قوائم رئيسية حاليًا.</p>`;
+
+  listEl.querySelectorAll('[data-toggle-cat]').forEach(el => {
+    el.addEventListener('click', () => toggleCatVisibleInManager(el.dataset.toggleCat));
+  });
+  listEl.querySelectorAll('[data-edit-cat]').forEach(el => {
+    el.addEventListener('click', () => startInlineRenameCategory(el.dataset.editCat));
+  });
+  listEl.querySelectorAll('[data-delete-cat]').forEach(el => {
+    el.addEventListener('click', () => deleteCategory(el.dataset.deleteCat));
+  });
+
+  if (typeof Sortable !== 'undefined'){
+    Sortable.create(listEl, {
+      handle: '.drag-handle', animation: 150,
+      onEnd: () => persistCatManagerOrder(listEl)
+    });
   }
-  showToast('تم الحفظ');
-  closeEditOverlay();
+}
+
+function startInlineRenameCategory(catId){
+  const cat = categories.find(c => c.id === catId);
+  const nameEl = document.querySelector(`[data-cat-name="${catId}"]`);
+  const current = cat.label;
+  nameEl.innerHTML = `<input class="inline-rename-input" value="${current}">`;
+  const input = nameEl.querySelector('input');
+  input.focus();
+  input.select();
+  let done = false;
+  async function commit(){
+    if (done) return;
+    done = true;
+    const newVal = input.value.trim();
+    if (newVal && newVal !== current){
+      await sb.from('categories').update({ label: newVal }).eq('id', catId);
+      cat.label = newVal;
+      renderTabsBar();
+      renderContent();
+    }
+    renderCatManagerList();
+  }
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') commit();
+    if (e.key === 'Escape') { done = true; renderCatManagerList(); }
+  });
+  input.addEventListener('blur', commit);
+}
+
+async function toggleCatVisibleInManager(catId){
+  const cat = categories.find(c => c.id === catId);
+  const newVal = !cat.is_visible;
+  const { error } = await sb.from('categories').update({ is_visible: newVal }).eq('id', catId);
+  if (error) { showToast('تعذّر التحديث'); return; }
+  cat.is_visible = newVal;
+  renderCatManagerList();
+  renderTabsBar();
+  showToast(newVal ? 'تم الإظهار' : 'تم الإخفاء مؤقتًا');
+}
+
+async function persistCatManagerOrder(listEl){
+  const ids = [...listEl.querySelectorAll('.subcat-existing-row')].map(el => el.dataset.id);
+  ids.forEach((id, i) => { const cat = categories.find(c => c.id === id); cat.sort_order = i + 1; });
+  categories.sort((a,b) => a.sort_order - b.sort_order);
+  for (const cat of categories){
+    await sb.from('categories').update({ sort_order: cat.sort_order }).eq('id', cat.id);
+  }
+  renderTabsBar();
+  showToast('تم حفظ الترتيب');
+}
+
+async function addNewCategory(){
+  const label = document.getElementById('newCatLabel').value.trim();
+  if (!label) { showToast('يرجى إدخال اسم القائمة'); return; }
+  const key = 'cat_' + Date.now().toString(36);
+  const maxOrder = categories.length ? Math.max(...categories.map(c=>c.sort_order)) : 0;
+  const { error } = await sb.from('categories').insert({ label, key, icon: 'tea', sort_order: maxOrder+1 });
+  if (error) { showToast('تعذّر الإضافة'); return; }
+  document.getElementById('newCatLabel').value = '';
   await loadCategories();
+  renderCatManagerList();
+  showToast('تمت الإضافة');
 }
 
 async function deleteCategory(catId){
-  if (!await customConfirm('حذف هذي القائمة وكل منتجاتها؟ ما يرجع فيه.')) return;
+  const hasItems = allItems.some(i => i.category_id === catId);
+  const hasSubcats = (subcategoriesByCat[catId] || []).length > 0;
+  if (hasItems || hasSubcats){
+    showToast('لا يمكن حذف هذه القائمة لاحتوائها على منتجات أو قوائم فرعية. يرجى حذفها أو نقلها أولًا.');
+    return;
+  }
+  if (!await customConfirm('هل أنت متأكد من حذف هذه القائمة؟')) return;
   await sb.from('categories').delete().eq('id', catId);
   showToast('تم الحذف');
-  closeEditOverlay();
-  if (activeTab === catId) activeTab = 'all';
   await loadCategories();
+  renderCatManagerList();
 }
 
-document.getElementById('addCatBtn').addEventListener('click', () => openCategoryEditor(null));
+document.getElementById('addCatBtn').addEventListener('click', () => openCategoryManager());
 
 /* ============ SUBCATEGORY EDITOR ============ */
 function openSubcategoryEditor(){
@@ -615,13 +726,17 @@ function renderSubcatExistingList(){
     <div class="subcat-existing-row" data-id="${s.id}">
       <div class="drag-handle" style="width:26px;height:26px;">☰</div>
       <div class="chk-visible${s.is_visible?' checked':''}" data-toggle-subcat="${s.id}"></div>
-      <div class="name">${s.label}</div>
+      <div class="name" data-subcat-name="${s.id}">${s.label}</div>
+      <button class="edit-name-btn" data-edit-subcat="${s.id}" title="تعديل الاسم">✏️</button>
       <button class="remove-row-btn" data-delete-subcat="${s.id}">✕</button>
     </div>
-  `).join('') || `<p style="font-size:.82rem;color:var(--green-mid);opacity:.7;">ما فيه قوائم فرعية بعد لهذي القائمة.</p>`;
+  `).join('') || `<p style="font-size:.82rem;color:var(--green-mid);opacity:.7;">لا توجد قوائم فرعية لهذه القائمة حاليًا.</p>`;
 
   listEl.querySelectorAll('[data-toggle-subcat]').forEach(el => {
     el.addEventListener('click', () => toggleSubcatVisible(el.dataset.toggleSubcat, catId));
+  });
+  listEl.querySelectorAll('[data-edit-subcat]').forEach(el => {
+    el.addEventListener('click', () => startInlineRenameSubcategory(el.dataset.editSubcat, catId));
   });
   listEl.querySelectorAll('[data-delete-subcat]').forEach(el => {
     el.addEventListener('click', () => deleteSubcategory(el.dataset.deleteSubcat, catId));
@@ -638,8 +753,8 @@ function renderSubcatExistingList(){
 async function addNewSubcategory(){
   const catId = document.getElementById('subcatParentSelect').value;
   const label = document.getElementById('newSubcatLabel').value.trim();
-  if (!catId) { showToast('اختر القائمة الرئيسية أول'); return; }
-  if (!label) { showToast('اكتب اسم القائمة الفرعية'); return; }
+  if (!catId) { showToast('يرجى اختيار القائمة الرئيسية أولًا'); return; }
+  if (!label) { showToast('يرجى إدخال اسم القائمة الفرعية'); return; }
   const list = subcategoriesByCat[catId] || [];
   const maxOrder = list.length ? Math.max(...list.map(s=>s.sort_order)) : 0;
   const { error } = await sb.from('subcategories').insert({ category_id: catId, label, sort_order: maxOrder+1 });
@@ -649,6 +764,33 @@ async function addNewSubcategory(){
   renderSubcatExistingList();
   renderContent();
   showToast('تمت الإضافة');
+}
+
+function startInlineRenameSubcategory(subId, catId){
+  const sub = subcategoriesByCat[catId].find(s => s.id === subId);
+  const nameEl = document.querySelector(`[data-subcat-name="${subId}"]`);
+  const current = sub.label;
+  nameEl.innerHTML = `<input class="inline-rename-input" value="${current}">`;
+  const input = nameEl.querySelector('input');
+  input.focus();
+  input.select();
+  let done = false;
+  async function commit(){
+    if (done) return;
+    done = true;
+    const newVal = input.value.trim();
+    if (newVal && newVal !== current){
+      await sb.from('subcategories').update({ label: newVal }).eq('id', subId);
+      sub.label = newVal;
+      renderContent();
+    }
+    renderSubcatExistingList();
+  }
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') commit();
+    if (e.key === 'Escape') { done = true; renderSubcatExistingList(); }
+  });
+  input.addEventListener('blur', commit);
 }
 
 async function toggleSubcatVisible(subId, catId){
@@ -661,7 +803,7 @@ async function toggleSubcatVisible(subId, catId){
 }
 
 async function deleteSubcategory(subId, catId){
-  if (!await customConfirm('حذف هذي القائمة الفرعية؟ المنتجات تحتها ما تنحذف بس تصير بدون قائمة فرعية.')) return;
+  if (!await customConfirm('هل تريد حذف هذه القائمة الفرعية؟ ستبقى منتجاتها ضمن القائمة الرئيسية دون تصنيف فرعي.')) return;
   await sb.from('subcategories').delete().eq('id', subId);
   await loadAllSubcategories();
   renderSubcatExistingList();
@@ -710,13 +852,13 @@ async function uploadImage(file, itemId){
     converted = { blob: file, ext: (file.type.includes('png') ? 'png' : 'jpg'), contentType: file.type || 'image/jpeg' };
   }
   const { blob, ext, contentType } = converted;
-  if (!blob) { showToast('فشل تجهيز الصورة — جرّب صورة ثانية'); return null; }
+  if (!blob) { showToast('تعذّر تجهيز الصورة، يرجى المحاولة بصورة أخرى'); return null; }
   // A unique filename every time (instead of always "{itemId}.ext") guarantees this
   // exact URL was never seen before by any cache layer (CDN or browser), so there is
   // zero chance of an old cached copy being served instead of the fresh upload.
   const path = `${itemId}-${Date.now()}.${ext}`;
   const { error } = await sb.storage.from(BUCKET).upload(path, blob, { upsert: true, contentType, cacheControl: '3600' });
-  if (error) { showToast('فشل رفع الصورة'); return null; }
+  if (error) { showToast('تعذّر رفع الصورة'); return null; }
   return { path };
 }
 
@@ -853,7 +995,7 @@ function openItemEditor(itemId){
   if (removeBtn) removeBtn.addEventListener('click', () => { itemFormDirty = true; onRemoveImageClick(); });
 
   document.getElementById('cancelItemBtn').addEventListener('click', async () => {
-    if (!itemFormDirty || await customConfirm('تراجع عن التعديلات؟ أي تغيير ما حفظته بيروح.')) closeEditOverlay();
+    if (!itemFormDirty || await customConfirm('هل تريد التراجع عن التعديلات؟ لن يتم حفظ أي تغيير غير محفوظ.')) closeEditOverlay();
   });
   document.getElementById('saveItemBtn').addEventListener('click', () => saveItem(itemId));
   if (!isNew) document.getElementById('deleteItemBtn').addEventListener('click', () => deleteItem(itemId));
@@ -968,9 +1110,9 @@ function renderItemPreview(item){
 
 async function saveItem(itemId){
   const name = document.getElementById('itmName').value.trim();
-  if (!name) { showToast('اكتب اسم المنتج'); return; }
+  if (!name) { showToast('يرجى إدخال اسم المنتج'); return; }
   const selectedCatId = document.getElementById('itmCategorySelect').value;
-  if (!selectedCatId) { showToast('اختر القائمة الرئيسية'); return; }
+  if (!selectedCatId) { showToast('يرجى اختيار القائمة الرئيسية'); return; }
   const subcatSelect = document.getElementById('itmSubcategorySelect');
   const selectedSubcatId = (subcatSelect && subcatSelect.value) ? subcatSelect.value : null;
   const description = document.getElementById('itmDesc').value.trim();
@@ -1025,14 +1167,14 @@ async function saveItem(itemId){
   const optRows = currentOptions.filter(o=>o.trim()).map((o,i)=>({ item_id: savedItemId, label:o, sort_order:i+1 }));
   if (optRows.length) await sb.from('item_options').insert(optRows);
 
-  showToast(imageUploadFailed ? 'تم حفظ البيانات، لكن فشل رفع الصورة — جرّب رفعها مرة ثانية' : 'تم الحفظ');
+  showToast(imageUploadFailed ? 'تم حفظ البيانات، لكن تعذّر رفع الصورة. يرجى إعادة المحاولة.' : 'تم الحفظ');
   closeEditOverlay();
   await loadAllItems();
   renderContent();
 }
 
 async function deleteItem(itemId){
-  if (!await customConfirm('حذف هذا المنتج نهائيًا؟')) return;
+  if (!await customConfirm('هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء.')) return;
   const item = allItems.find(i => i.id === itemId);
   if (item && item.image_path) await removeImageFromStorage(item.image_path);
   await sb.from('items').delete().eq('id', itemId);
@@ -1116,7 +1258,7 @@ async function openPromoEditor(){
   });
 
   document.getElementById('cancelPromoBtn').addEventListener('click', async () => {
-    if (!promoFormDirty || await customConfirm('تراجع عن التعديلات؟ أي تغيير ما حفظته بيروح.')) closeEditOverlay();
+    if (!promoFormDirty || await customConfirm('هل تريد التراجع عن التعديلات؟ لن يتم حفظ أي تغيير غير محفوظ.')) closeEditOverlay();
   });
   document.getElementById('savePromoBtn').addEventListener('click', savePromo);
 }
@@ -1142,11 +1284,140 @@ async function savePromo(){
   }).eq('id', 1);
 
   if (error) { showToast('تعذّر الحفظ'); return; }
-  showToast(imageUploadFailed ? 'تم حفظ البيانات، لكن فشل رفع الصورة — جرّب رفعها مرة ثانية' : 'تم الحفظ');
+  showToast(imageUploadFailed ? 'تم حفظ البيانات، لكن تعذّر رفع الصورة. يرجى إعادة المحاولة.' : 'تم الحفظ');
   closeEditOverlay();
 }
 
 document.getElementById('promoBtn').addEventListener('click', openPromoEditor);
+
+/* ============ DISCOUNTS ============ */
+let discountMethod = 'all';
+
+function openDiscountsManager(){
+  const html = `
+    <h3>الخصومات</h3>
+
+    <div class="method-tabs">
+      <button class="active" data-m="all">على الكل</button>
+      <button data-m="cat">على قائمة</button>
+      <button data-m="item">على منتج</button>
+    </div>
+
+    <div id="discCatField" class="field" style="display:none;">
+      <label>اختر القائمة</label>
+      <select id="discCatSelect">${categories.map(c=>`<option value="${c.id}">${c.label}</option>`).join('')}</select>
+    </div>
+    <div id="discItemField" class="field" style="display:none;">
+      <label>اختر المنتج</label>
+      <select id="discItemSelect">${allItems.map(i=>`<option value="${i.id}">${i.name}</option>`).join('')}</select>
+    </div>
+
+    <div class="field">
+      <label>نسبة الخصم % (بين 1 و99)</label>
+      <input type="number" id="discPercentInput" min="1" max="99" placeholder="مثال: 20">
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" id="applyDiscountBtn">تطبيق الخصم</button>
+    </div>
+
+    <div class="active-discounts">
+      <h4>الخصومات الفعّالة حاليًا</h4>
+      <div id="activeDiscountsList"></div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-outline" id="closeDiscountsBtn">إغلاق</button>
+    </div>`;
+
+  openEditOverlaySheet(html);
+  discountMethod = 'all';
+  renderActiveDiscountsList();
+
+  document.querySelectorAll('.method-tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      discountMethod = btn.dataset.m;
+      document.querySelectorAll('.method-tabs button').forEach(b => b.classList.toggle('active', b === btn));
+      document.getElementById('discCatField').style.display = discountMethod === 'cat' ? '' : 'none';
+      document.getElementById('discItemField').style.display = discountMethod === 'item' ? '' : 'none';
+    });
+  });
+
+  document.getElementById('applyDiscountBtn').addEventListener('click', applyDiscount);
+  document.getElementById('closeDiscountsBtn').addEventListener('click', closeEditOverlay);
+}
+
+async function applyDiscount(){
+  const pct = parseFloat(document.getElementById('discPercentInput').value);
+  if (!pct || pct <= 0 || pct >= 100){ showToast('يرجى إدخال نسبة خصم صحيحة بين 1 و99'); return; }
+
+  let targetIds = [];
+  if (discountMethod === 'all'){
+    targetIds = allItems.map(i => i.id);
+  } else if (discountMethod === 'cat'){
+    const catId = document.getElementById('discCatSelect').value;
+    targetIds = allItems.filter(i => i.category_id === catId).map(i => i.id);
+  } else {
+    targetIds = [document.getElementById('discItemSelect').value];
+  }
+
+  if (!targetIds.length){ showToast('لا توجد منتجات ضمن هذا الاختيار'); return; }
+
+  const { error } = await sb.from('items').update({ discount_percent: pct }).in('id', targetIds);
+  if (error) { showToast('تعذّر تطبيق الخصم'); return; }
+
+  targetIds.forEach(id => { const it = allItems.find(i => i.id === id); if (it) it.discount_percent = pct; });
+  document.getElementById('discPercentInput').value = '';
+  renderActiveDiscountsList();
+  renderContent();
+  showToast('تم تطبيق الخصم');
+}
+
+function renderActiveDiscountsList(){
+  const discounted = allItems.filter(i => i.discount_percent);
+  const listEl = document.getElementById('activeDiscountsList');
+  if (!listEl) return;
+  listEl.innerHTML = discounted.map(i => `
+    <div class="discount-row" data-id="${i.id}">
+      <span class="target">${i.name}</span>
+      <span class="pct">-${i.discount_percent}%</span>
+      <button class="remove-row-btn" data-remove-discount="${i.id}">✕</button>
+    </div>
+  `).join('') || `<p style="font-size:.82rem;color:var(--green-mid);opacity:.7;">لا توجد خصومات فعّالة حاليًا.</p>`;
+
+  listEl.querySelectorAll('[data-remove-discount]').forEach(el => {
+    el.addEventListener('click', () => removeDiscount(el.dataset.removeDiscount));
+  });
+
+  if (discounted.length){
+    listEl.insertAdjacentHTML('beforeend', `<button class="btn btn-outline" id="cancelAllDiscountsBtn" style="width:100%;margin-top:8px;">إلغاء كل الخصومات</button>`);
+    document.getElementById('cancelAllDiscountsBtn').addEventListener('click', cancelAllDiscounts);
+  }
+}
+
+async function removeDiscount(itemId){
+  const { error } = await sb.from('items').update({ discount_percent: null }).eq('id', itemId);
+  if (error) { showToast('تعذّر إلغاء الخصم'); return; }
+  const it = allItems.find(i => i.id === itemId);
+  if (it) it.discount_percent = null;
+  renderActiveDiscountsList();
+  renderContent();
+  showToast('تم إلغاء الخصم');
+}
+
+async function cancelAllDiscounts(){
+  if (!await customConfirm('هل أنت متأكد من إلغاء جميع الخصومات الفعّالة حاليًا؟')) return;
+  const discountedIds = allItems.filter(i => i.discount_percent).map(i => i.id);
+  if (!discountedIds.length) return;
+  const { error } = await sb.from('items').update({ discount_percent: null }).in('id', discountedIds);
+  if (error) { showToast('تعذّر إلغاء الخصومات'); return; }
+  discountedIds.forEach(id => { const it = allItems.find(i => i.id === id); if (it) it.discount_percent = null; });
+  renderActiveDiscountsList();
+  renderContent();
+  showToast('تم إلغاء جميع الخصومات');
+}
+
+document.getElementById('discountsBtn').addEventListener('click', openDiscountsManager);
 
 /* ============ INIT ============ */
 checkSession();
