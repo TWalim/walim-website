@@ -172,6 +172,7 @@
   .card-thumb{
     width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
     background:var(--beige-deep);color:var(--green-mid);position:relative;overflow:hidden;
+    container-type:inline-size;
   }
   .card-thumb svg{width:44%;height:44%;}
   .card-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -187,8 +188,8 @@
   .aed-icon{width:.8em;height:.8em;display:inline-block;vertical-align:-0.05em;flex-shrink:0;}
   .card-price .aed-icon{margin-inline-start:2px;}
   .discount-badge{
-    position:absolute;top:6px;right:6px;background:#c0392b;color:#fff;font-size:.6rem;
-    font-weight:800;padding:3px 8px;border-radius:999px;z-index:2;
+    position:absolute;top:3.5cqw;right:3.5cqw;background:#c0392b;color:#fff;font-size:5.6cqw;
+    font-weight:800;padding:1.75cqw 4.7cqw;border-radius:999px;z-index:2;white-space:nowrap;
   }
   .card-price.has-discount{flex-direction:column;gap:1px;padding:4px 6px;}
   .old-price-sm{font-size:.58rem;text-decoration:line-through;opacity:.65;font-weight:600;}
@@ -216,6 +217,7 @@
   .modal-thumb{
     width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
     background:var(--beige-deep);color:var(--green-mid);position:relative;overflow:hidden;
+    container-type:inline-size;
   }
   .modal-thumb svg{width:34%;height:34%;}
   .modal-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -258,6 +260,8 @@
   .variant-row:not(:last-child){border-bottom:1px solid rgba(25,61,32,.08);}
   .variant-row span:first-child{color:var(--ink-on-paper);font-weight:600;}
   .variant-row span:last-child{color:var(--green-mid);font-weight:800;}
+  .variant-old-price{text-decoration:line-through;opacity:.55;font-weight:600!important;color:var(--ink-on-paper)!important;margin-inline-end:6px;font-size:.85em;}
+  .variant-new-price{color:var(--green-mid);font-weight:800;}
   .variant-group{margin-bottom:16px;}
   .variant-group:last-child{margin-bottom:0;}
   .variant-group-label{font-weight:800;color:var(--green);font-size:.92rem;margin-bottom:6px;}
@@ -353,7 +357,7 @@
     font-size:.68rem;color:rgba(255,252,234,.4);text-align:center;
   }
   .credit-line{
-    font-size:.6rem;color:rgba(255,252,234,.35);text-align:center;margin-top:4px;
+    font-size:.72rem;color:rgba(255,252,234,.35);text-align:center;margin-top:4px;
   }
   .credit-line a{color:rgba(255,252,234,.55);border-bottom:1px solid transparent;}
   .credit-line a:hover{border-color:rgba(255,252,234,.55);}
@@ -363,9 +367,30 @@
     .menu-wrap{padding:32px 16px 10px;}
     .card-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;}
   }
+  .loading-screen{
+    position:fixed;inset:0;background:var(--beige);z-index:99999;
+    display:flex;align-items:center;justify-content:center;
+    transition:opacity .35s ease;
+  }
+  .loading-screen.hide{opacity:0;pointer-events:none;}
+  .loading-spinner-wrap{position:relative;width:110px;height:110px;display:flex;align-items:center;justify-content:center;}
+  .loading-logo{width:52px;height:auto;position:relative;z-index:2;}
+  .loading-ring{
+    position:absolute;inset:0;border:4px solid rgba(25,61,32,.15);
+    border-top-color:var(--green);border-radius:50%;
+    animation:loading-spin 1s linear infinite;
+  }
+  @keyframes loading-spin{ to{ transform:rotate(360deg); } }
 </style>
 </head>
 <body>
+
+<div id="loadingScreen" class="loading-screen">
+  <div class="loading-spinner-wrap">
+    <img src="images/logo.png" alt="والم" class="loading-logo">
+    <div class="loading-ring"></div>
+  </div>
+</div>
 
 <!-- ============ PAGE: HOME ============ -->
 <div class="page active" id="page-home">
@@ -586,6 +611,13 @@ async function loadMenuFromSupabase(){
     catItems.forEach(it => {
       const sub = catSubs.find(s => s.id === it.subcategory_id);
       const groupLabel = sub ? sub.label : '';
+      const discountPercent = it.discount_percent || null;
+
+      function priceWithDiscount(rawPrice){
+        if (discountPercent == null) return { price: `${rawPrice} د.إ` };
+        const discounted = Math.round(rawPrice * (1 - discountPercent/100) * 100) / 100;
+        return { price: `${discounted} د.إ`, originalPrice: `${rawPrice} د.إ` };
+      }
 
       const variants = (it.item_variants || []).slice().sort((a,b)=>a.sort_order-b.sort_order);
       const hasGroups = variants.some(v => v.group_label);
@@ -596,23 +628,23 @@ async function loadMenuFromSupabase(){
           const gl = v.group_label || '';
           let g = seen.find(x => x.label === gl);
           if (!g){ g = { label: gl, variants: [] }; seen.push(g); }
-          g.variants.push({ label: v.label, price: `${v.price} د.إ` });
+          g.variants.push({ label: v.label, ...priceWithDiscount(v.price) });
         });
         variantGroupsField = seen;
       } else if (variants.length){
-        variantsField = variants.map(v => ({ label: v.label, price: `${v.price} د.إ` }));
+        variantsField = variants.map(v => ({ label: v.label, ...priceWithDiscount(v.price) }));
       }
 
       const options = (it.item_options || []).slice().sort((a,b)=>a.sort_order-b.sort_order).map(o => o.label);
 
-      const hasDiscount = it.discount_percent != null && it.price != null;
-      const discountedPrice = hasDiscount ? Math.round(it.price * (1 - it.discount_percent/100) * 100) / 100 : null;
+      const hasFlatDiscount = discountPercent != null && it.price != null;
+      const flatDiscounted = hasFlatDiscount ? priceWithDiscount(it.price) : null;
 
       addToGroup(groupLabel, {
         name: it.name,
-        price: hasDiscount ? `${discountedPrice} د.إ` : (it.price != null ? `${it.price} د.إ` : null),
-        originalPrice: hasDiscount ? `${it.price} د.إ` : null,
-        discountPercent: hasDiscount ? it.discount_percent : null,
+        price: hasFlatDiscount ? flatDiscounted.price : (it.price != null ? `${it.price} د.إ` : null),
+        originalPrice: hasFlatDiscount ? flatDiscounted.originalPrice : null,
+        discountPercent: discountPercent,
         desc: it.description || '',
         variants: variantsField,
         variantGroups: variantGroupsField,
@@ -675,8 +707,8 @@ function renderGrid(){
             </div>
             <div class="card-body">
               <div class="card-name">${item.name}</div>
-              <div class="card-price${item.discountPercent ? ' has-discount' : ''}">${
-                item.discountPercent
+              <div class="card-price${item.originalPrice ? ' has-discount' : ''}">${
+                item.originalPrice
                   ? `<span class="old-price-sm">${formatPrice(item.originalPrice)}</span><span class="new-price-sm">${formatPrice(item.price)}</span>`
                   : (item.price ? formatPrice(item.price) : 'خيارات متعددة')
               }</div>
@@ -713,9 +745,15 @@ function openModal(item, catKey){
     ? `<p class="modal-desc">${item.desc}</p>`
     : '';
 
+  function variantPriceHtml(v){
+    return v.originalPrice
+      ? `<span class="variant-old-price">${formatPrice(v.originalPrice)}</span><span class="variant-new-price">${formatPrice(v.price)}</span>`
+      : formatPrice(v.price);
+  }
+
   const variantsRow = item.variants
     ? `<div class="variant-list">${item.variants.map(v => `
-        <div class="variant-row"><span>${v.label}</span><span>${formatPrice(v.price)}</span></div>
+        <div class="variant-row"><span>${v.label}</span><span>${variantPriceHtml(v)}</span></div>
       `).join('')}</div>`
     : '';
 
@@ -724,7 +762,7 @@ function openModal(item, catKey){
         <div class="variant-group">
           <div class="variant-group-label">${g.label}</div>
           <div class="variant-list">${g.variants.map(v => `
-            <div class="variant-row"><span>${v.label}</span><span>${formatPrice(v.price)}</span></div>
+            <div class="variant-row"><span>${v.label}</span><span>${variantPriceHtml(v)}</span></div>
           `).join('')}</div>
         </div>
       `).join('')
@@ -770,17 +808,26 @@ modalClose.addEventListener('click', closeModal);
 overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
+function hideLoadingScreen(){
+  const el = document.getElementById('loadingScreen');
+  if (!el) return;
+  el.classList.add('hide');
+  setTimeout(() => el.remove(), 400);
+}
+
 (async function initMenu(){
   menuWrap.innerHTML = '<p style="text-align:center;padding:40px;color:var(--green-mid);">...جاري تحميل القائمة</p>';
   const ok = await loadMenuFromSupabase();
   if (!ok || !CATEGORIES.length){
     menuWrap.innerHTML = '<p style="text-align:center;padding:40px;color:var(--green-mid);">تعذّر تحميل القائمة حاليًا. حاول تحديث الصفحة بعد قليل.</p>';
     tabsInner.innerHTML = '';
+    hideLoadingScreen();
     return;
   }
   activeCat = CATEGORIES[0].key;
   renderTabs();
   renderGrid();
+  hideLoadingScreen();
 })();
 
 goTo('page-home');
