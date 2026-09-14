@@ -165,36 +165,44 @@
 
   .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;}
   .card{
-    background:var(--beige-warm);border:1px solid rgba(25,61,32,.12);border-radius:16px;
+    background:var(--beige-deep);border:1px solid rgba(25,61,32,.12);border-radius:16px;
     overflow:hidden;text-align:center;transition:transform .18s, box-shadow .18s;
+    position:relative;aspect-ratio:1;container-type:inline-size;
   }
   .card:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(25,61,32,.14);}
   .card-thumb{
-    width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
-    background:var(--beige-deep);color:var(--green-mid);position:relative;overflow:hidden;
-    container-type:inline-size;
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:var(--beige-deep);color:var(--green-mid);
   }
   .card-thumb svg{width:44%;height:44%;}
   .card-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
   .thumb-fallback{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:var(--beige-deep);}
-  .card-body{display:flex;min-height:38px;}
-  .card-name, .card-price{
-    flex:1;display:flex;align-items:center;justify-content:center;
-    font-size:.76rem;font-weight:700;line-height:1.25;padding:7px 6px;
+  .card-scrim{
+    position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:linear-gradient(to top, rgba(10,20,12,.82) 0%, rgba(10,20,12,.35) 42%, transparent 68%);
   }
-  .card-price{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .card-name{background:var(--beige-warm);color:var(--ink-on-paper);border-radius:0 0 999px 0;}
-  .card-price{background:var(--green);color:var(--beige);font-weight:900;border-radius:0 0 0 999px;}
+  .card-body{
+    position:absolute;bottom:0;right:0;left:0;z-index:2;padding:10px 12px 9px;text-align:right;
+  }
+  .card-name{
+    color:#fff;font-size:.78rem;font-weight:800;line-height:1.3;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .card-price{
+    color:#fff;font-weight:700;font-size:.72rem;opacity:.92;margin-top:2px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    display:flex;align-items:center;gap:4px;
+  }
   .aed-icon{width:.8em;height:.8em;display:inline-block;vertical-align:-0.05em;flex-shrink:0;}
   .card-price .aed-icon{margin-inline-start:2px;}
   .discount-badge{
     position:absolute;top:3.5cqw;right:3.5cqw;background:#c0392b;color:#fff;font-size:5.6cqw;
     font-weight:800;padding:1.75cqw 4.7cqw;border-radius:999px;z-index:2;white-space:nowrap;
   }
-  .card-price.has-discount{flex-direction:column;gap:1px;padding:4px 6px;}
-  .old-price-sm{font-size:.58rem;text-decoration:line-through;opacity:.65;font-weight:600;}
+  .card-price.has-discount{flex-direction:row;gap:6px;}
+  .old-price-sm{font-size:.85em;text-decoration:line-through;opacity:.7;font-weight:600;}
   .old-price-sm .aed-icon{width:.65em;height:.65em;}
-  .new-price-sm{font-size:.78rem;font-weight:900;}
+  .new-price-sm{font-size:1em;font-weight:800;color:#ffd166;}
 
   /* MODAL */
   .modal-overlay{
@@ -221,9 +229,16 @@
   }
   .modal-thumb svg{width:34%;height:34%;}
   .modal-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-  .modal-body{padding:28px 26px 32px;}
-  .modal-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:12px;}
-  .modal-top h3{font-size:1.5rem;color:var(--ink-on-paper);}
+  .modal-scrim{
+    position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:linear-gradient(to top, rgba(10,20,12,.82) 0%, rgba(10,20,12,.3) 45%, transparent 70%);
+  }
+  .modal-body{padding:20px 26px 32px;}
+  .modal-top{
+    position:absolute;bottom:0;right:0;left:0;z-index:2;padding:18px 22px 16px;
+    display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  }
+  .modal-top h3{font-size:1.4rem;color:#fff;}
 
   /* ===== PROMOTIONAL ANNOUNCEMENT ===== */
   .promo-overlay{
@@ -245,9 +260,9 @@
   .promo-thumb{width:100%;background:var(--beige-deep);overflow:hidden;text-align:center;line-height:0;}
   .promo-thumb img{max-width:100%;max-height:38vh;width:auto;height:auto;display:inline-block;}
   .promo-desc{padding:18px 22px 22px;font-size:.95rem;line-height:1.85;color:var(--ink-on-paper);text-align:center;white-space:pre-line;}
-  .modal-price{font-weight:900;color:var(--green-mid);font-size:1.2rem;white-space:nowrap;font-family:'Tajawal';}
+  .modal-price{font-weight:900;color:#ffd166;font-size:1.2rem;white-space:nowrap;font-family:'Tajawal';}
   .modal-price-wrap{display:flex;align-items:baseline;gap:8px;}
-  .modal-old-price{font-size:.9rem;text-decoration:line-through;opacity:.55;font-weight:700;color:var(--ink-on-paper);}
+  .modal-old-price{font-size:.9rem;text-decoration:line-through;opacity:.7;font-weight:700;color:#fff;}
   .modal-desc{font-size:.92rem;line-height:1.85;color:#4a4530;margin-bottom:16px;}
   .variant-list{
     border-top:1px solid rgba(25,61,32,.14);border-bottom:1px solid rgba(25,61,32,.14);
@@ -705,6 +720,7 @@ function renderGrid(){
                 : ''}
               <div class="thumb-fallback"${item.imageUrl ? '' : ' style="display:flex;"'}>${icon}</div>
             </div>
+            <div class="card-scrim"></div>
             <div class="card-body">
               <div class="card-name">${item.name}</div>
               <div class="card-price${item.originalPrice ? ' has-discount' : ''}">${
@@ -785,9 +801,10 @@ function openModal(item, catKey){
              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
         : ''}
       <div class="thumb-fallback"${item.imageUrl ? '' : ' style="display:flex;"'}>${icon}</div>
+      <div class="modal-scrim"></div>
+      <div class="modal-top"><h3>${item.name}</h3>${priceRow}</div>
     </div>
     <div class="modal-body">
-      <div class="modal-top"><h3>${item.name}</h3>${priceRow}</div>
       ${descRow}
       ${variantsRow}
       ${variantGroupsRow}
@@ -815,7 +832,94 @@ function hideLoadingScreen(){
   setTimeout(() => el.remove(), 400);
 }
 
+const eventSlug = new URLSearchParams(location.search).get('event');
+
+async function renderEventPage(slug){
+  hideLoadingScreen();
+  document.querySelector('.tabs').style.display = 'none';
+
+  if (!sb) {
+    menuWrap.innerHTML = '<p style="text-align:center;padding:60px 20px;color:var(--green-mid);">تعذّر تحميل الفعالية حاليًا. حاول تحديث الصفحة بعد قليل.</p>';
+    return;
+  }
+
+  const { data: ev, error: evErr } = await sb.from('events').select('*').eq('slug', slug).single();
+  const today = new Date().toISOString().slice(0,10);
+  const isExpired = ev && ev.expiry_date && ev.expiry_date < today;
+
+  if (evErr || !ev || ev.status !== 'active' || isExpired){
+    menuWrap.innerHTML = '<p style="text-align:center;padding:60px 20px;color:var(--green-mid);">هذه الفعالية لم تعد متاحة.</p>';
+    return;
+  }
+
+  const { data: evItems } = await sb
+    .from('event_items')
+    .select('*, event_item_variant_prices(*), event_item_excluded_variants(*)')
+    .eq('event_id', ev.id)
+    .order('sort_order');
+
+  const itemIds = (evItems||[]).map(ei => ei.item_id);
+  const { data: baseItems } = await sb
+    .from('items')
+    .select('*, item_variants(*), item_options(*)')
+    .in('id', itemIds.length ? itemIds : ['00000000-0000-0000-0000-000000000000']);
+
+  const groupItems = (evItems||[]).map(ei => {
+    const base = (baseItems||[]).find(b => b.id === ei.item_id);
+    if (!base) return null;
+    const excludedIds = new Set((ei.event_item_excluded_variants||[]).map(ex => ex.item_variant_id));
+    const variants = (base.item_variants||[]).filter(v => !excludedIds.has(v.id)).sort((a,b)=>a.sort_order-b.sort_order);
+    const overridesByVariant = Object.fromEntries((ei.event_item_variant_prices||[]).map(vp => [vp.item_variant_id, vp.custom_price]));
+
+    let variantsField, variantGroupsField;
+    if (variants.length){
+      const finalVariants = variants.map(v => ({ label: v.label, price: `${overridesByVariant[v.id] ?? v.price} د.إ`, group_label: v.group_label }));
+      const hasGroups = finalVariants.some(v => v.group_label);
+      if (hasGroups){
+        const seen = [];
+        finalVariants.forEach(v => {
+          const gl = v.group_label || '';
+          let g = seen.find(x => x.label === gl);
+          if (!g){ g = { label: gl, variants: [] }; seen.push(g); }
+          g.variants.push({ label: v.label, price: v.price });
+        });
+        variantGroupsField = seen;
+      } else {
+        variantsField = finalVariants;
+      }
+    }
+
+    const finalPrice = ei.custom_price ?? base.price;
+    const options = (base.item_options||[]).slice().sort((a,b)=>a.sort_order-b.sort_order).map(o => o.label);
+
+    return {
+      name: base.name,
+      price: finalPrice != null ? `${finalPrice} د.إ` : null,
+      desc: base.description || '',
+      variants: variantsField,
+      variantGroups: variantGroupsField,
+      optionsLabel: base.options_label || null,
+      options: options.length ? options : undefined,
+      imageUrl: publicImageUrl(base.image_path),
+      _catKeyForIcon: base.category_id,
+    };
+  }).filter(Boolean);
+
+  ITEMS = { __event__: { '': groupItems } };
+  CATEGORIES = [{ key:'__event__', label: ev.name, icon:'tea' }];
+  activeCat = '__event__';
+
+  renderGrid();
+  menuWrap.insertAdjacentHTML('afterbegin', `<h2 style="text-align:center;color:var(--green);font-size:1.3rem;font-weight:900;margin:18px 0;">${ev.name}</h2>`);
+}
+
 (async function initMenu(){
+  if (eventSlug){
+    await renderEventPage(eventSlug);
+    goTo('page-menu');
+    return;
+  }
+
   menuWrap.innerHTML = '<p style="text-align:center;padding:40px;color:var(--green-mid);">...جاري تحميل القائمة</p>';
   const ok = await loadMenuFromSupabase();
   if (!ok || !CATEGORIES.length){
@@ -831,7 +935,7 @@ function hideLoadingScreen(){
 })();
 
 goTo('page-home');
-loadAndShowPromo();
+if (!eventSlug) loadAndShowPromo();
 
 // Prevent the browser from restoring the previous scroll position on refresh —
 // every fresh load should always start at the very top of the page.
