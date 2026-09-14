@@ -823,6 +823,10 @@ async function renderEventPage(slug){
   // Event pages show ONLY the item grid — no homepage hero, no tabs, no footer/map/contact info.
   document.getElementById('page-home').style.display = 'none';
   document.querySelector('.tabs').style.display = 'none';
+  const topbarEl = document.querySelector('#page-menu .page-topbar');
+  if (topbarEl) topbarEl.style.display = 'none';
+  const pageHeadEl = document.querySelector('#page-menu .page-head');
+  if (pageHeadEl) pageHeadEl.style.display = 'none';
   const saduEl = document.querySelector('.sadu');
   if (saduEl) saduEl.style.display = 'none';
   const footerEl = document.querySelector('footer');
