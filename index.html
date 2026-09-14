@@ -165,44 +165,36 @@
 
   .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;}
   .card{
-    background:var(--beige-deep);border:1px solid rgba(25,61,32,.12);border-radius:16px;
+    background:var(--beige-warm);border:1px solid rgba(25,61,32,.12);border-radius:16px;
     overflow:hidden;text-align:center;transition:transform .18s, box-shadow .18s;
-    position:relative;aspect-ratio:1;container-type:inline-size;
   }
   .card:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(25,61,32,.14);}
   .card-thumb{
-    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    background:var(--beige-deep);color:var(--green-mid);
+    width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+    background:var(--beige-deep);color:var(--green-mid);position:relative;overflow:hidden;
+    container-type:inline-size;
   }
   .card-thumb svg{width:44%;height:44%;}
   .card-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
   .thumb-fallback{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:var(--beige-deep);}
-  .card-scrim{
-    position:absolute;inset:0;z-index:1;pointer-events:none;
-    background:linear-gradient(to top, rgba(10,20,12,.82) 0%, rgba(10,20,12,.35) 42%, transparent 68%);
+  .card-body{display:flex;min-height:38px;}
+  .card-name, .card-price{
+    flex:1;display:flex;align-items:center;justify-content:center;
+    font-size:.76rem;font-weight:700;line-height:1.25;padding:7px 6px;
   }
-  .card-body{
-    position:absolute;bottom:0;right:0;left:0;z-index:2;padding:10px 12px 9px;text-align:right;
-  }
-  .card-name{
-    color:#fff;font-size:.78rem;font-weight:800;line-height:1.3;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  }
-  .card-price{
-    color:#fff;font-weight:700;font-size:.72rem;opacity:.92;margin-top:2px;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-    display:flex;align-items:center;gap:4px;
-  }
+  .card-price{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .card-name{background:var(--beige-warm);color:var(--ink-on-paper);border-radius:0 0 999px 0;}
+  .card-price{background:var(--green);color:var(--beige);font-weight:900;border-radius:0 0 0 999px;}
   .aed-icon{width:.8em;height:.8em;display:inline-block;vertical-align:-0.05em;flex-shrink:0;}
   .card-price .aed-icon{margin-inline-start:2px;}
   .discount-badge{
     position:absolute;top:3.5cqw;right:3.5cqw;background:#c0392b;color:#fff;font-size:5.6cqw;
     font-weight:800;padding:1.75cqw 4.7cqw;border-radius:999px;z-index:2;white-space:nowrap;
   }
-  .card-price.has-discount{flex-direction:row;gap:6px;}
-  .old-price-sm{font-size:.85em;text-decoration:line-through;opacity:.7;font-weight:600;}
+  .card-price.has-discount{flex-direction:column;gap:1px;padding:4px 6px;}
+  .old-price-sm{font-size:.58rem;text-decoration:line-through;opacity:.65;font-weight:600;}
   .old-price-sm .aed-icon{width:.65em;height:.65em;}
-  .new-price-sm{font-size:1em;font-weight:800;color:#ffd166;}
+  .new-price-sm{font-size:.78rem;font-weight:900;}
 
   /* MODAL */
   .modal-overlay{
@@ -229,16 +221,9 @@
   }
   .modal-thumb svg{width:34%;height:34%;}
   .modal-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-  .modal-scrim{
-    position:absolute;inset:0;z-index:1;pointer-events:none;
-    background:linear-gradient(to top, rgba(10,20,12,.82) 0%, rgba(10,20,12,.3) 45%, transparent 70%);
-  }
-  .modal-body{padding:20px 26px 32px;}
-  .modal-top{
-    position:absolute;bottom:0;right:0;left:0;z-index:2;padding:18px 22px 16px;
-    display:flex;justify-content:space-between;align-items:baseline;gap:12px;
-  }
-  .modal-top h3{font-size:1.4rem;color:#fff;}
+  .modal-body{padding:28px 26px 32px;}
+  .modal-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:12px;}
+  .modal-top h3{font-size:1.5rem;color:var(--ink-on-paper);}
 
   /* ===== PROMOTIONAL ANNOUNCEMENT ===== */
   .promo-overlay{
@@ -260,9 +245,9 @@
   .promo-thumb{width:100%;background:var(--beige-deep);overflow:hidden;text-align:center;line-height:0;}
   .promo-thumb img{max-width:100%;max-height:38vh;width:auto;height:auto;display:inline-block;}
   .promo-desc{padding:18px 22px 22px;font-size:.95rem;line-height:1.85;color:var(--ink-on-paper);text-align:center;white-space:pre-line;}
-  .modal-price{font-weight:900;color:#ffd166;font-size:1.2rem;white-space:nowrap;font-family:'Tajawal';}
+  .modal-price{font-weight:900;color:var(--green-mid);font-size:1.2rem;white-space:nowrap;font-family:'Tajawal';}
   .modal-price-wrap{display:flex;align-items:baseline;gap:8px;}
-  .modal-old-price{font-size:.9rem;text-decoration:line-through;opacity:.7;font-weight:700;color:#fff;}
+  .modal-old-price{font-size:.9rem;text-decoration:line-through;opacity:.55;font-weight:700;color:var(--ink-on-paper);}
   .modal-desc{font-size:.92rem;line-height:1.85;color:#4a4530;margin-bottom:16px;}
   .variant-list{
     border-top:1px solid rgba(25,61,32,.14);border-bottom:1px solid rgba(25,61,32,.14);
@@ -720,7 +705,6 @@ function renderGrid(){
                 : ''}
               <div class="thumb-fallback"${item.imageUrl ? '' : ' style="display:flex;"'}>${icon}</div>
             </div>
-            <div class="card-scrim"></div>
             <div class="card-body">
               <div class="card-name">${item.name}</div>
               <div class="card-price${item.originalPrice ? ' has-discount' : ''}">${
@@ -801,10 +785,9 @@ function openModal(item, catKey){
              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
         : ''}
       <div class="thumb-fallback"${item.imageUrl ? '' : ' style="display:flex;"'}>${icon}</div>
-      <div class="modal-scrim"></div>
-      <div class="modal-top"><h3>${item.name}</h3>${priceRow}</div>
     </div>
     <div class="modal-body">
+      <div class="modal-top"><h3>${item.name}</h3>${priceRow}</div>
       ${descRow}
       ${variantsRow}
       ${variantGroupsRow}
@@ -836,7 +819,14 @@ const eventSlug = new URLSearchParams(location.search).get('event');
 
 async function renderEventPage(slug){
   hideLoadingScreen();
+
+  // Event pages show ONLY the item grid — no homepage hero, no tabs, no footer/map/contact info.
+  document.getElementById('page-home').style.display = 'none';
   document.querySelector('.tabs').style.display = 'none';
+  const saduEl = document.querySelector('.sadu');
+  if (saduEl) saduEl.style.display = 'none';
+  const footerEl = document.querySelector('footer');
+  if (footerEl) footerEl.style.display = 'none';
 
   if (!sb) {
     menuWrap.innerHTML = '<p style="text-align:center;padding:60px 20px;color:var(--green-mid);">تعذّر تحميل الفعالية حاليًا. حاول تحديث الصفحة بعد قليل.</p>';
