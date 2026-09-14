@@ -141,6 +141,9 @@
   }
   .discount-row .target{flex:1;font-weight:700;}
   .discount-row .pct{background:#c0392b;color:#fff;font-weight:800;padding:2px 8px;border-radius:999px;font-size:.72rem;}
+  .event-link-box{background:var(--beige-warm);border-radius:12px;padding:14px;margin:8px 0 12px;text-align:center;}
+  .event-link-box .link{font-size:.76rem;color:var(--green-mid);word-break:break-all;background:var(--beige);padding:8px;border-radius:8px;margin-bottom:10px;}
+  .event-link-box .qr-img{width:140px;height:140px;border-radius:8px;}
   .empty-state{text-align:center;padding:40px 20px;color:var(--green-mid);}
 
   /* ===== EDIT OVERLAY (only visible during add/edit) ===== */
@@ -282,6 +285,7 @@
       <button class="action-btn" id="addItemGlobalBtn"><span class="ic">🍽️</span> إضافة منتج</button>
       <button class="action-btn" id="promoBtn"><span class="ic">📣</span> الإعلان الترويجي</button>
       <button class="action-btn" id="discountsBtn"><span class="ic">🏷️</span> الخصومات</button>
+      <button class="action-btn" id="eventsBtn"><span class="ic">🎪</span> الفعاليات</button>
     </div>
   </div>
 
@@ -1418,6 +1422,332 @@ async function cancelAllDiscounts(){
 }
 
 document.getElementById('discountsBtn').addEventListener('click', openDiscountsManager);
+
+/* ============ EVENTS ============ */
+let allEvents = [];
+let eventEditorState = null; // { eventId, name, expiryDate, selectedItems: [{itemId, customPrice, variantPrices:{variantId:price}}] }
+
+async function loadEvents(){
+  const { data, error } = await sb.from('events').select('*').order('created_at', { ascending: false });
+  if (error) { showToast('تعذّر تحميل الفعاليات'); return; }
+  allEvents = data;
+
+  const today = new Date().toISOString().slice(0,10);
+  const toExpire = allEvents.filter(e => e.status === 'active' && e.expiry_date && e.expiry_date < today);
+  for (const ev of toExpire){
+    await sb.from('events').update({ status: 'archived' }).eq('id', ev.id);
+    ev.status = 'archived';
+  }
+}
+
+function openEventsManager(){
+  loadEvents().then(renderEventsManagerBody);
+  const html = `
+    <h3>الفعاليات</h3>
+    <div id="eventsManagerBody"><div class="spinner"></div></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="newEventBtn">فعالية جديدة</button>
+      <button class="btn btn-outline" id="closeEventsBtn">إغلاق</button>
+    </div>`;
+  openEditOverlaySheet(html);
+  document.getElementById('newEventBtn').addEventListener('click', () => openEventEditor(null));
+  document.getElementById('closeEventsBtn').addEventListener('click', closeEditOverlay);
+}
+
+function renderEventsManagerBody(){
+  const body = document.getElementById('eventsManagerBody');
+  if (!body) return;
+  const active = allEvents.filter(e => e.status === 'active');
+  const archived = allEvents.filter(e => e.status === 'archived');
+
+  function rowHtml(ev){
+    const link = `${location.origin}${location.pathname.replace(/admin\/?(index\.html)?$/, '')}?event=${ev.slug}`;
+    return `
+      <div class="discount-row" data-id="${ev.id}">
+        <span class="target">${ev.name}</span>
+        ${ev.status==='active' ? `<button class="btn btn-sm btn-outline" data-view-link="${ev.id}">الرابط</button>` : ''}
+        <button class="btn btn-sm btn-outline" data-edit-event="${ev.id}">تعديل</button>
+        ${ev.status==='active'
+          ? `<button class="btn btn-sm btn-danger" data-archive-event="${ev.id}">إيقاف</button>`
+          : `<button class="btn btn-sm btn-primary" data-republish-event="${ev.id}">إعادة نشر</button>`}
+        <button class="remove-row-btn" data-delete-event="${ev.id}" title="حذف نهائي">✕</button>
+      </div>
+      <div class="event-link-box" id="linkBox-${ev.id}" style="display:none;">
+        <div class="link">${link}</div>
+        <img class="qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(link)}" alt="QR">
+      </div>`;
+  }
+
+  body.innerHTML = `
+    <h4 style="font-size:.85rem;color:var(--green-mid);margin-bottom:8px;">نشطة</h4>
+    ${active.length ? active.map(rowHtml).join('') : '<p style="font-size:.82rem;color:var(--green-mid);opacity:.7;">لا توجد فعاليات نشطة حاليًا.</p>'}
+    <h4 style="font-size:.85rem;color:var(--green-mid);margin:16px 0 8px;">منتهية</h4>
+    ${archived.length ? archived.map(rowHtml).join('') : '<p style="font-size:.82rem;color:var(--green-mid);opacity:.7;">لا توجد فعاليات منتهية.</p>'}
+  `;
+
+  body.querySelectorAll('[data-view-link]').forEach(el => {
+    el.addEventListener('click', () => {
+      const box = document.getElementById(`linkBox-${el.dataset.viewLink}`);
+      box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    });
+  });
+  body.querySelectorAll('[data-edit-event]').forEach(el => {
+    el.addEventListener('click', () => openEventEditor(el.dataset.editEvent));
+  });
+  body.querySelectorAll('[data-archive-event]').forEach(el => {
+    el.addEventListener('click', () => archiveEvent(el.dataset.archiveEvent));
+  });
+  body.querySelectorAll('[data-republish-event]').forEach(el => {
+    el.addEventListener('click', () => openEventEditor(el.dataset.republishEvent, true));
+  });
+  body.querySelectorAll('[data-delete-event]').forEach(el => {
+    el.addEventListener('click', async () => {
+      if (!await customConfirm('هل أنت متأكد من حذف هذه الفعالية نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+      await sb.from('events').delete().eq('id', el.dataset.deleteEvent);
+      showToast('تم الحذف');
+      await loadEvents();
+      renderEventsManagerBody();
+    });
+  });
+}
+
+async function archiveEvent(eventId){
+  if (!await customConfirm('هل أنت متأكد من إيقاف هذه الفعالية؟')) return;
+  await sb.from('events').update({ status: 'archived' }).eq('id', eventId);
+  showToast('تم إيقاف الفعالية');
+  await loadEvents();
+  renderEventsManagerBody();
+}
+
+function genSlug(){
+  return 'evt-' + Math.random().toString(36).slice(2, 9);
+}
+
+async function openEventEditor(eventId, isRepublish){
+  let event = { name:'', expiry_date:null };
+  let existingItems = [];
+  if (eventId){
+    const { data } = await sb.from('events').select('*').eq('id', eventId).single();
+    event = data;
+    const { data: evItems } = await sb.from('event_items').select('*, event_item_variant_prices(*), event_item_excluded_variants(*)').eq('event_id', eventId).order('sort_order');
+    existingItems = evItems || [];
+  }
+
+  eventEditorState = {
+    eventId: isRepublish ? null : eventId,
+    name: event.name,
+    expiryDate: event.expiry_date,
+    selectedItems: existingItems.map(ei => ({
+      itemId: ei.item_id,
+      customPrice: ei.custom_price,
+      variantPrices: Object.fromEntries((ei.event_item_variant_prices||[]).map(vp => [vp.item_variant_id, vp.custom_price])),
+      excludedVariants: new Set((ei.event_item_excluded_variants||[]).map(ex => ex.item_variant_id))
+    }))
+  };
+
+  const html = `
+    <h3>${eventEditorState.eventId ? 'تعديل الفعالية' : 'فعالية جديدة'}</h3>
+    <div class="field"><label>اسم الفعالية</label><input id="eventNameInput" value="${event.name||''}"></div>
+
+    <label style="font-size:.8rem;font-weight:700;color:var(--green-mid);display:block;margin:14px 0 6px;">الأصناف المختارة (اسحب لإعادة الترتيب)</label>
+    <div id="selectedItemsList"></div>
+
+    <label style="font-size:.8rem;font-weight:700;color:var(--green-mid);display:block;margin:16px 0 6px;">اختيار الأصناف</label>
+    <div id="availableItemsList"></div>
+
+    <div class="field" style="margin-top:14px;">
+      <label>تاريخ انتهاء الفعالية (اختياري)</label>
+      <input type="date" id="eventExpiryInput" value="${event.expiry_date||''}">
+    </div>
+
+    <div id="eventLinkResult"></div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" id="saveEventBtn">${eventEditorState.eventId ? 'حفظ' : 'توليد الرابط'}</button>
+      <button class="btn btn-outline" id="cancelEventBtn">إلغاء</button>
+    </div>`;
+
+  openEditOverlaySheet(html);
+  renderEventItemPicker();
+
+  document.getElementById('eventNameInput').addEventListener('input', () => { eventEditorState.name = document.getElementById('eventNameInput').value; });
+  document.getElementById('eventExpiryInput').addEventListener('input', () => { eventEditorState.expiryDate = document.getElementById('eventExpiryInput').value || null; });
+  document.getElementById('cancelEventBtn').addEventListener('click', async () => {
+    if (await customConfirm('هل تريد التراجع عن التعديلات؟ لن يتم حفظ أي تغيير غير محفوظ.')) openEventsManager();
+  });
+  document.getElementById('saveEventBtn').addEventListener('click', saveEvent);
+}
+
+function renderEventItemPicker(){
+  const selEl = document.getElementById('selectedItemsList');
+  const availEl = document.getElementById('availableItemsList');
+  const selectedIds = new Set(eventEditorState.selectedItems.map(s => s.itemId));
+
+  // Selected items (draggable, with price inputs)
+  selEl.innerHTML = eventEditorState.selectedItems.map(sel => {
+    const item = allItems.find(i => i.id === sel.itemId);
+    if (!item) return '';
+    let priceFieldsHtml;
+    if (item.item_variants && item.item_variants.length){
+      priceFieldsHtml = item.item_variants.map(v => {
+        const isExcluded = sel.excludedVariants && sel.excludedVariants.has(v.id);
+        return `
+        <div style="display:flex;align-items:center;gap:6px;margin-top:4px;${isExcluded?'opacity:.45;':''}">
+          <div class="chk-visible${isExcluded?'':' checked'}" data-toggle-variant-include="${sel.itemId}" data-variant-toggle="${v.id}" style="width:18px;height:18px;flex-shrink:0;"></div>
+          <span style="font-size:.72rem;color:var(--green-mid);flex:1;">${v.label}</span>
+          <input type="number" step="0.5" class="event-variant-price" data-item="${sel.itemId}" data-variant="${v.id}" ${isExcluded?'disabled':''}
+            placeholder="${v.price}" value="${sel.variantPrices[v.id] ?? ''}" style="width:70px;padding:4px 6px;font-size:.78rem;border-radius:6px;border:1px solid rgba(25,61,32,.2);">
+        </div>
+      `;}).join('');
+    } else {
+      priceFieldsHtml = `<input type="number" step="0.5" class="event-item-price" data-item="${sel.itemId}"
+        placeholder="${item.price!=null?item.price:''}" value="${sel.customPrice ?? ''}" style="width:80px;padding:5px 8px;font-size:.8rem;border-radius:6px;border:1px solid rgba(25,61,32,.2);">`;
+    }
+    return `
+      <div class="subcat-existing-row" data-id="${sel.itemId}" style="flex-direction:column;align-items:stretch;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="drag-handle" style="width:26px;height:26px;">☰</div>
+          <div class="name" style="flex:1;">${item.name}</div>
+          ${item.item_variants && item.item_variants.length ? '' : priceFieldsHtml}
+          <button class="remove-row-btn" data-remove-selected="${sel.itemId}">✕</button>
+        </div>
+        ${item.item_variants && item.item_variants.length ? `<div style="padding-right:34px;">${priceFieldsHtml}</div>` : ''}
+      </div>`;
+  }).join('') || `<p style="font-size:.82rem;color:var(--green-mid);opacity:.7;">ما اخترت أي أصناف بعد.</p>`;
+
+  selEl.querySelectorAll('[data-remove-selected]').forEach(el => {
+    el.addEventListener('click', () => {
+      eventEditorState.selectedItems = eventEditorState.selectedItems.filter(s => s.itemId !== el.dataset.removeSelected);
+      renderEventItemPicker();
+    });
+  });
+  selEl.querySelectorAll('.event-item-price').forEach(el => {
+    el.addEventListener('input', () => {
+      const sel = eventEditorState.selectedItems.find(s => s.itemId === el.dataset.item);
+      sel.customPrice = el.value ? parseFloat(el.value) : null;
+    });
+  });
+  selEl.querySelectorAll('.event-variant-price').forEach(el => {
+    el.addEventListener('input', () => {
+      const sel = eventEditorState.selectedItems.find(s => s.itemId === el.dataset.item);
+      if (el.value) sel.variantPrices[el.dataset.variant] = parseFloat(el.value);
+      else delete sel.variantPrices[el.dataset.variant];
+    });
+  });
+  selEl.querySelectorAll('[data-toggle-variant-include]').forEach(el => {
+    el.addEventListener('click', () => {
+      const sel = eventEditorState.selectedItems.find(s => s.itemId === el.dataset.toggleVariantInclude);
+      const variantId = el.dataset.variantToggle;
+      if (sel.excludedVariants.has(variantId)) sel.excludedVariants.delete(variantId);
+      else sel.excludedVariants.add(variantId);
+      renderEventItemPicker();
+    });
+  });
+
+  if (typeof Sortable !== 'undefined'){
+    Sortable.create(selEl, {
+      handle: '.drag-handle', animation: 150,
+      onEnd: () => {
+        const ids = [...selEl.querySelectorAll('[data-id]')].map(el => el.dataset.id);
+        eventEditorState.selectedItems.sort((a,b) => ids.indexOf(a.itemId) - ids.indexOf(b.itemId));
+      }
+    });
+  }
+
+  // Available items (checklist grouped by category)
+  availEl.innerHTML = categories.map(cat => {
+    const catItems = allItems.filter(i => i.category_id === cat.id && !selectedIds.has(i.id));
+    if (!catItems.length) return '';
+    return `<div class="subcat-group-label" style="margin:8px 4px 4px;font-size:.76rem;font-weight:800;color:var(--green-mid);">${cat.label}</div>` +
+      catItems.map(it => `
+        <div class="subcat-existing-row" data-add-item="${it.id}" style="cursor:pointer;">
+          <div class="chk-visible"></div>
+          <div class="name">${it.name}</div>
+        </div>
+      `).join('');
+  }).join('') || `<p style="font-size:.82rem;color:var(--green-mid);opacity:.7;">كل الأصناف مختارة بالفعل.</p>`;
+
+  availEl.querySelectorAll('[data-add-item]').forEach(el => {
+    el.addEventListener('click', () => {
+      eventEditorState.selectedItems.push({ itemId: el.dataset.addItem, customPrice: null, variantPrices: {}, excludedVariants: new Set() });
+      renderEventItemPicker();
+    });
+  });
+}
+
+async function saveEvent(){
+  const name = eventEditorState.name?.trim();
+  if (!name) { showToast('يرجى إدخال اسم الفعالية'); return; }
+  if (!eventEditorState.selectedItems.length) { showToast('يرجى اختيار صنف واحد على الأقل'); return; }
+
+  const isFirstSave = !eventEditorState.eventId;
+  let eventId = eventEditorState.eventId;
+  if (eventId){
+    await sb.from('events').update({ name, expiry_date: eventEditorState.expiryDate, updated_at: new Date().toISOString() }).eq('id', eventId);
+  } else {
+    const slug = genSlug();
+    const { data, error } = await sb.from('events').insert({ name, slug, expiry_date: eventEditorState.expiryDate, status: 'active' }).select().single();
+    if (error) { showToast('تعذّر إنشاء الفعالية'); return; }
+    eventId = data.id;
+    eventEditorState.eventId = eventId; // prevents a second click from creating a duplicate event
+  }
+
+  // replace event_items entirely (simplest robust approach)
+  await sb.from('event_items').delete().eq('event_id', eventId);
+  for (let i = 0; i < eventEditorState.selectedItems.length; i++){
+    const sel = eventEditorState.selectedItems[i];
+    const { data: evItem } = await sb.from('event_items').insert({
+      event_id: eventId, item_id: sel.itemId, custom_price: sel.customPrice, sort_order: i+1
+    }).select().single();
+    const variantEntries = Object.entries(sel.variantPrices || {});
+    if (variantEntries.length){
+      await sb.from('event_item_variant_prices').insert(
+        variantEntries.map(([variantId, price]) => ({ event_item_id: evItem.id, item_variant_id: variantId, custom_price: price }))
+      );
+    }
+    const excludedIds = [...(sel.excludedVariants || [])];
+    if (excludedIds.length){
+      await sb.from('event_item_excluded_variants').insert(
+        excludedIds.map(variantId => ({ event_item_id: evItem.id, item_variant_id: variantId }))
+      );
+    }
+  }
+
+  showToast('تم الحفظ');
+  await loadEvents();
+
+  if (isFirstSave){
+    const savedEvent = allEvents.find(e => e.id === eventId);
+    const link = `${location.origin}${location.pathname.replace(/admin\/?(index\.html)?$/, '')}?event=${savedEvent.slug}`;
+    document.getElementById('eventLinkResult').innerHTML = `
+      <div class="event-link-box" style="display:block;">
+        <div class="link">${link}</div>
+        <img class="qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(link)}" alt="QR">
+      </div>`;
+    // switch to a single "إغلاق" action now that the event is saved — prevents re-clicking "توليد الرابط" and duplicating
+    document.getElementById('saveEventBtn').textContent = 'حفظ';
+    document.getElementById('cancelEventBtn').textContent = 'إغلاق';
+    document.getElementById('cancelEventBtn').replaceWith(document.getElementById('cancelEventBtn').cloneNode(true));
+    document.getElementById('cancelEventBtn').addEventListener('click', openEventsManager);
+    if (!document.getElementById('deleteEventBtn')){
+      document.querySelector('.form-actions').insertAdjacentHTML('beforeend', `<button class="btn btn-danger" id="deleteEventBtn">حذف الفعالية</button>`);
+      document.getElementById('deleteEventBtn').addEventListener('click', () => deleteEventPermanently(eventId));
+    }
+  } else {
+    openEventsManager();
+  }
+}
+
+async function deleteEventPermanently(eventId){
+  if (!await customConfirm('هل أنت متأكد من حذف هذه الفعالية نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+  await sb.from('events').delete().eq('id', eventId);
+  showToast('تم الحذف');
+  await loadEvents();
+  openEventsManager();
+}
+
+document.getElementById('eventsBtn').addEventListener('click', openEventsManager);
+
 
 /* ============ INIT ============ */
 checkSession();
