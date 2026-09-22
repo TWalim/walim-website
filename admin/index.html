@@ -286,6 +286,7 @@
       <button class="action-btn" id="promoBtn"><span class="ic">📣</span> الإعلان الترويجي</button>
       <button class="action-btn" id="discountsBtn"><span class="ic">🏷️</span> الخصومات</button>
       <button class="action-btn" id="eventsBtn"><span class="ic">🎪</span> الفعاليات</button>
+      <button class="action-btn" id="leadsBtn"><span class="ic">👥</span> المهتمين</button>
     </div>
   </div>
 
@@ -1758,6 +1759,76 @@ async function deleteEventPermanently(eventId){
 }
 
 document.getElementById('eventsBtn').addEventListener('click', openEventsManager);
+
+/* ============ INTERESTED LEADS ============ */
+async function openLeadsManager(){
+  const html = `
+    <h3>المهتمون</h3>
+    <div class="form-actions" style="margin-bottom:14px;">
+      <button class="btn btn-primary" id="exportLeadsBtn">تصدير Excel</button>
+    </div>
+    <div id="leadsListBody"><div class="spinner"></div></div>
+    <div class="form-actions">
+      <button class="btn btn-outline" id="closeLeadsBtn">إغلاق</button>
+    </div>`;
+  openEditOverlaySheet(html);
+  document.getElementById('closeLeadsBtn').addEventListener('click', closeEditOverlay);
+  document.getElementById('exportLeadsBtn').addEventListener('click', exportLeadsToCSV);
+  await renderLeadsList();
+}
+
+async function renderLeadsList(){
+  const body = document.getElementById('leadsListBody');
+  if (!body) return;
+  const { data, error } = await sb.from('interested_leads').select('*').order('created_at', { ascending: false });
+  if (error) { body.innerHTML = `<p style="font-size:.82rem;color:var(--green-mid);">تعذّر تحميل قائمة المهتمين.</p>`; return; }
+
+  if (!data.length){
+    body.innerHTML = `<p style="font-size:.82rem;color:var(--green-mid);opacity:.7;">لا يوجد مهتمون مسجّلون حاليًا.</p>`;
+    return;
+  }
+
+  body.innerHTML = data.map(l => `
+    <div class="discount-row">
+      <span class="target">${l.name}</span>
+      <span style="font-size:.78rem;color:var(--green-mid);">${l.phone}</span>
+      ${l.car_plate ? `<span style="font-size:.72rem;color:var(--green-mid);opacity:.75;">${l.car_plate}</span>` : ''}
+    </div>
+  `).join('');
+}
+
+function csvEscape(field){
+  const str = String(field ?? '');
+  if (str.includes(',') || str.includes('"') || str.includes('\n')){
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+async function exportLeadsToCSV(){
+  const { data, error } = await sb.from('interested_leads').select('*').order('created_at', { ascending: true });
+  if (error) { showToast('تعذّر تحميل بيانات المهتمين'); return; }
+  if (!data.length){ showToast('لا توجد بيانات لتصديرها'); return; }
+
+  const headers = ["هوية العميل","اسم العميل","البريد الإلكتروني","الهاتف","العنوان","المدينة","الإمارة","الرمز البريدي","الدولة","رمز العميل","النقاط","ملاحظة"];
+  const rows = data.map(l => [
+    '', l.name, '', l.phone, '', '', '', '', '', '', '', l.car_plate ? `رقم السيارة: ${l.car_plate}` : ''
+  ]);
+
+  const csvContent = [headers, ...rows].map(row => row.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `المهتمين_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('تم تصدير الملف');
+}
+
+document.getElementById('leadsBtn').addEventListener('click', openLeadsManager);
 
 
 /* ============ INIT ============ */
