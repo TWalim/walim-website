@@ -292,6 +292,19 @@
   .partnerships-wrap p{color:rgba(25,61,32,.75);line-height:1.9;font-size:1rem;margin-bottom:34px;}
   .inline-link{color:var(--green);font-weight:700;border-bottom:1.5px solid var(--green);}
   .inline-link:hover{opacity:.75;}
+  .interest-form{width:100%;max-width:360px;text-align:right;}
+  .interest-field{margin-bottom:18px;}
+  .interest-field label{display:block;font-size:.85rem;font-weight:700;color:var(--green);margin-bottom:6px;}
+  .interest-field input{
+    width:100%;padding:12px 14px;border:1.5px solid rgba(25,61,32,.25);border-radius:12px;
+    font-size:16px;background:var(--beige-warm);color:var(--green);font-family:inherit;
+  }
+  .interest-field input:focus{outline:2px solid var(--green-mid);}
+  .interest-hint{font-size:.76rem;color:var(--green-mid);opacity:.8;margin-top:6px;}
+  .interest-submit{width:100%;margin-top:6px;}
+  .interest-msg{margin-top:16px;font-size:.9rem;font-weight:700;min-height:1.2em;}
+  .interest-msg.success{color:var(--green-mid);}
+  .interest-msg.error{color:#c0392b;}
 
   /* ================= FOOTER (shared) ================= */
   footer{background:var(--green);color:var(--beige);padding:28px 24px 16px;margin-top:24px;}
@@ -406,6 +419,7 @@
     <div class="hero-cta">
       <button class="btn btn-gold" onclick="goTo('page-menu')">قائمة الطعام</button>
       <button class="btn btn-outline" onclick="goTo('page-partnerships')">التعاون والمشاركات</button>
+      <button class="btn btn-outline" onclick="goTo('page-interest')">سجّل اهتمامك</button>
     </div>
   </header>
 </div>
@@ -438,6 +452,37 @@
   </div>
 </div>
 
+<!-- ============ PAGE: INTEREST REGISTRATION ============ -->
+<div class="page" id="page-interest">
+  <div class="page-topbar">
+    <button class="back-badge" onclick="goTo('page-home')">العودة</button>
+  </div>
+  <div class="partnerships-wrap">
+    <div class="eyebrow">كن أول من يعلم</div>
+    <h1 class="display">سجّل اهتمامك</h1>
+    <p>سجّل بياناتك لتصلك آخر عروضنا وأخبارنا.</p>
+
+    <form id="interestForm" class="interest-form">
+      <div class="interest-field">
+        <label for="interestName">الاسم</label>
+        <input type="text" id="interestName" required>
+      </div>
+      <div class="interest-field">
+        <label for="interestPhone">رقم التواصل</label>
+        <input type="tel" id="interestPhone" required>
+      </div>
+      <div class="interest-field">
+        <label for="interestCarPlate">رقم السيارة (اختياري)</label>
+        <input type="text" id="interestCarPlate">
+        <p class="interest-hint">لتسهيل تسليم طلبك عند وصولك</p>
+      </div>
+      <button type="submit" class="btn btn-gold interest-submit">تسجيل</button>
+      <p id="interestMsg" class="interest-msg"></p>
+    </form>
+  </div>
+</div>
+
+
 <div class="sadu sadu-on-beige"></div>
 
 <footer>
@@ -456,7 +501,7 @@
     <div class="footer-section">
       <h4>ساعات العمل</h4>
       <p>
-        الأحد إلى الخميس: الساعة 7:00 صباحًا حتى الساعة 1:00 صباحًا<br>
+        الأحد إلى الخميس: الساعة 10:00 صباحًا حتى الساعة 1:00 صباحًا<br>
         الجمعة والسبت: الساعة 4:00 عصرًا حتى الساعة 1:00 صباحًا
       </p>
     </div>
@@ -991,6 +1036,46 @@ if (document.readyState === 'complete') {
   initStoreMap();
 } else {
   window.addEventListener('load', initStoreMap);
+}
+
+/* ================= INTEREST REGISTRATION FORM ================= */
+const interestForm = document.getElementById('interestForm');
+if (interestForm){
+  interestForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msgEl = document.getElementById('interestMsg');
+    const submitBtn = interestForm.querySelector('.interest-submit');
+    const name = document.getElementById('interestName').value.trim();
+    const phone = document.getElementById('interestPhone').value.trim();
+    const carPlate = document.getElementById('interestCarPlate').value.trim();
+
+    if (!name || !phone){
+      msgEl.textContent = 'يرجى تعبئة الاسم ورقم التواصل.';
+      msgEl.className = 'interest-msg error';
+      return;
+    }
+    if (!sb){
+      msgEl.textContent = 'تعذّر إرسال التسجيل حاليًا. حاول مرة أخرى بعد قليل.';
+      msgEl.className = 'interest-msg error';
+      return;
+    }
+
+    submitBtn.disabled = true;
+    const { error } = await sb.from('interested_leads').insert({
+      name, phone, car_plate: carPlate || null
+    });
+    submitBtn.disabled = false;
+
+    if (error){
+      msgEl.textContent = 'تعذّر إرسال التسجيل. حاول مرة أخرى.';
+      msgEl.className = 'interest-msg error';
+      return;
+    }
+
+    msgEl.textContent = 'تم تسجيل بياناتك بنجاح. شكرًا لاهتمامك بنا.';
+    msgEl.className = 'interest-msg success';
+    interestForm.reset();
+  });
 }
 </script>
 </body>
